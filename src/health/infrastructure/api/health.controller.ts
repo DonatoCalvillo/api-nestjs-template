@@ -1,12 +1,11 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, HttpCode } from '@nestjs/common';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('health')
 @Controller('health')
 export class HealthController {
-  private readonly logger = new Logger(HealthController.name);
-
   @Get('/')
-  run() {
-    this.logger.log('Health check');
-    return 'OK';
-  }
+  @HttpCode(204)
+  @ApiResponse({ status: 204, description: 'Health check OK' })
+  run() {}
 }
