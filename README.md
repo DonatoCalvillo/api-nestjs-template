@@ -2,10 +2,10 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
 
-<h1 align="center">🚀 NestJs + Fastify + SWC Template 🚀</h1>
+<h1 align="center">🚀 NestJs + Express Template 🚀</h1>
 
 <p align="center">
-  Template for new API REST based on Fastify and Typescript with Clean Code and Hexagonal Architecture
+  Template for new API REST based on Express and Typescript with Clean Code and Hexagonal Architecture
 </p>
 
 <p align="center">
