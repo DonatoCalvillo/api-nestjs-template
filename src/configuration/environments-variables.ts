@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import * as joi from 'joi';
-import { ConfigurationEnvironmentVariableError } from 'src/modules/shared/domain/errors/configuration';
+import { ConfigurationEnvironmentVariableError } from '../modules/shared/domain/errors/configuration';
 
 interface EnvironmentVariables {
   NODE_ENV: string;

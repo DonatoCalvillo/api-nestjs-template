@@ -1,4 +1,4 @@
-import { ENVIRONMENT_VARIABLES } from 'src/configuration/environments-variables';
+import { ENVIRONMENT_VARIABLES } from '../configuration/environments-variables';
 import { DataSource, DataSourceOptions } from 'typeorm';
 
 export const dataSourceOptions: DataSourceOptions = {
