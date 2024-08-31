@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${SCHEDULE_DB_USERNAME}
+      POSTGRES_PASSWORD: ${SCHEDULE_DB_PASSWORD}
+      POSTGRES_DB: ${SCHEDULE_DB_DATABASE}
+      PGPORT: ${SCHEDULE_DB_PORT}
+    volumes:
+      - ./posgres-data:/var/lib/postgresql/data
+    ports:
+      - "${SCHEDULE_DB_PORT}:${SCHEDULE_DB_PORT}"
+    networks:
+      - my-network
+volumes:
+  node_modules:
+
+networks:
+  my-network:
+    driver: bridge
