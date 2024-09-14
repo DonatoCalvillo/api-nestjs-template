@@ -3,11 +3,11 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
-  host: ENVIRONMENT_VARIABLES.SCHEDULE_DB_HOST,
-  port: ENVIRONMENT_VARIABLES.SCHEDULE_DB_PORT,
-  username: ENVIRONMENT_VARIABLES.SCHEDULE_DB_USERNAME,
-  password: ENVIRONMENT_VARIABLES.SCHEDULE_DB_PASSWORD,
-  database: ENVIRONMENT_VARIABLES.SCHEDULE_DB_DATABASE,
+  host: ENVIRONMENT_VARIABLES.DB_HOST,
+  port: ENVIRONMENT_VARIABLES.DB_PORT,
+  username: ENVIRONMENT_VARIABLES.DB_USERNAME,
+  password: ENVIRONMENT_VARIABLES.DB_PASSWORD,
+  database: ENVIRONMENT_VARIABLES.DB_DATABASE,
   entities: ['dist/**/*.entity.js'],
   migrationsTableName: 'migrations',
   migrations: ['dist/database/migrations/*.js'],
