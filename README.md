@@ -415,13 +415,14 @@ Database ← UserEntity ← toPersistence() ← UserModel ← use case / domain 
 
 ## 🔒 Security
 
-The API supports CORS, rate limiting, and IP allowlist filtering. All settings are controlled via environment variables and validated at startup with Joi in `src/configuration/environments-variables.ts`.
+The API supports HTTP security headers (Helmet), CORS, rate limiting, and IP allowlist filtering. All settings are controlled via environment variables and validated at startup with Joi in `src/configuration/environments-variables.ts`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CORS_ENABLED` | `true` | Enable CORS headers |
 | `CORS_ORIGINS` | `*` | Allowed origins, comma-separated. Use `*` to allow all |
 | `CORS_CREDENTIALS` | `false` | Send `Access-Control-Allow-Credentials`. Cannot be used with `CORS_ORIGINS=*` |
+| `HELMET_ENABLED` | `true` | Enable Helmet HTTP security headers |
 | `THROTTLE_ENABLED` | `true` | Enable global rate limiting |
 | `THROTTLE_TTL` | `60` | Rate limit window in seconds |
 | `THROTTLE_LIMIT` | `100` | Max requests per IP within the window |
@@ -432,6 +433,8 @@ The API supports CORS, rate limiting, and IP allowlist filtering. All settings a
 Copy the security block from `example.env` into your `.env` file.
 
 **CORS:** Separate multiple origins with commas (e.g. `http://localhost:4200,https://app.example.com`). Use `*` only when `CORS_CREDENTIALS=false`.
+
+**Helmet:** When enabled, sets security headers on every response: `X-Content-Type-Options: nosniff` (MIME sniffing), `X-Frame-Options: DENY` (clickjacking), `Cross-Origin-Resource-Policy: cross-origin` (compatible with browser clients and CORS), and hides `X-Powered-By`. `Strict-Transport-Security` is sent only when `NODE_ENV=production`. Disable with `HELMET_ENABLED=false`.
 
 **Rate limiting:** Exceeded requests receive `429 Too Many Requests`. Disable with `THROTTLE_ENABLED=false`.
 

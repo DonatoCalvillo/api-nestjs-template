@@ -8,6 +8,7 @@ process.env.DB_DATABASE = 'test';
 process.env.CORS_ENABLED = 'true';
 process.env.CORS_ORIGINS = '*';
 process.env.CORS_CREDENTIALS = 'false';
+process.env.HELMET_ENABLED = 'true';
 process.env.THROTTLE_ENABLED = 'false';
 process.env.THROTTLE_TTL = '60';
 process.env.THROTTLE_LIMIT = '100';

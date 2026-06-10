@@ -22,6 +22,7 @@ interface EnvironmentVariables {
   CORS_ENABLED: boolean;
   CORS_ORIGINS: string;
   CORS_CREDENTIALS: boolean;
+  HELMET_ENABLED: boolean;
   THROTTLE_ENABLED: boolean;
   THROTTLE_TTL: number;
   THROTTLE_LIMIT: number;
@@ -58,6 +59,7 @@ const environmentSchema = joi
     CORS_ENABLED: booleanEnv(true),
     CORS_ORIGINS: joi.string().default('*'),
     CORS_CREDENTIALS: booleanEnv(false),
+    HELMET_ENABLED: booleanEnv(true),
     THROTTLE_ENABLED: booleanEnv(true),
     THROTTLE_TTL: joi.number().default(60),
     THROTTLE_LIMIT: joi.number().default(100),
@@ -99,6 +101,7 @@ export const ENVIRONMENT_VARIABLES = {
   CORS_ENABLED: environmentVariables.CORS_ENABLED,
   CORS_ORIGINS: environmentVariables.CORS_ORIGINS,
   CORS_CREDENTIALS: environmentVariables.CORS_CREDENTIALS,
+  HELMET_ENABLED: environmentVariables.HELMET_ENABLED,
   THROTTLE_ENABLED: environmentVariables.THROTTLE_ENABLED,
   THROTTLE_TTL: environmentVariables.THROTTLE_TTL,
   THROTTLE_LIMIT: environmentVariables.THROTTLE_LIMIT,

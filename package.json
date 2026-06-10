@@ -43,6 +43,7 @@
     "@willsoto/nestjs-prometheus": "^6.1.0",
     "axios": "^1.17.0",
     "dotenv": "17.4.2",
+    "helmet": "^8.2.0",
     "joi": "18.2.1",
     "nestjs-cls": "^6.2.1",
     "nestjs-pino": "4.6.1",
