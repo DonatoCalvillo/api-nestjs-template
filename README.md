@@ -30,9 +30,63 @@ Inspired by projects of very important and knowledgeable people in the field suc
 
 - [Albert Hernandez](https://github.com/AlbertHernandez)
 
+## 🏛️ TypeORM Entities
+
+Persistence entities live in the infrastructure layer and extend `BaseEntity` from `src/modules/shared/infrastructure/persistence/entity.base.ts`. The base class provides a UUID primary key and audit timestamps managed by TypeORM.
+
+### What is included
+
+| Export | Field | TypeORM decorator |
+|--------|-------|-------------------|
+| `id` | UUID primary key | `@PrimaryGeneratedColumn('uuid')` |
+| `createdAt` | Creation timestamp | `@CreateDateColumn({ type: 'timestamptz' })` |
+| `updatedAt` | Last update timestamp | `@UpdateDateColumn({ type: 'timestamptz' })` |
+
+`createdAt` and `updatedAt` are set automatically on insert and update. You do not need to assign them manually.
+
+### Recommended folder structure
+
+```
+src/modules/users/
+└── infrastructure/
+    └── persistence/
+        └── user.entity.ts
+```
+
+### Extend `BaseEntity`
+
+```typescript
+import { Column, Entity } from 'typeorm';
+import { BaseEntity } from '../../../shared/infrastructure/persistence';
+
+@Entity('users')
+export class UserEntity extends BaseEntity {
+  @Column()
+  name: string;
+
+  @Column()
+  email: string;
+}
+```
+
+### Register the entity in a module
+
+```typescript
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserEntity } from './infrastructure/persistence/user.entity';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([UserEntity])],
+})
+export class UsersModule {}
+```
+
+TypeORM discovers entities matching `dist/**/*.entity.js` via the global config in `src/database/data-source.ts`. Name concrete entity files with the `.entity.ts` suffix (for example, `user.entity.ts`).
+
 ## 🧱 Domain Models
 
-Domain models represent entities with identity (unlike value objects, which are compared by value). The template provides a base abstraction in `src/modules/shared/domain/model/` built on top of [`value-object-lib`](https://www.npmjs.com/package/value-object-lib).
+Domain models represent business logic in the domain layer using [`value-object-lib`](https://www.npmjs.com/package/value-object-lib). They are separate from TypeORM persistence entities. The abstraction lives in `src/modules/shared/domain/model/`.
 
 ### What is included
 
@@ -109,18 +163,20 @@ import { randomUUID } from 'crypto';
 import { EmailValueObject, NonEmptyStringValueObject } from 'value-object-lib';
 import { UserModel } from './user.model';
 
+const now = new Date();
+
 const user = new UserModel({
   id: randomUUID(),
   props: {
     name: new NonEmptyStringValueObject('name', 'Edgar'),
     email: new EmailValueObject('email', 'edgar@example.com'),
   },
-  createdAt: new Date(),
+  createdAt: now,
   updatedAt: null,
 });
 ```
 
-`createdAt` and `updatedAt` are optional and default to `null`. When provided, they are validated as dates; when `null`, no `DateValueObject` is created.
+`createdAt` and `updatedAt` are optional and default to `null`. When provided, they are validated as dates.
 
 ### Step 4 — Compare and serialize
 
