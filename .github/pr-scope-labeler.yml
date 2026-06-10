@@ -62,7 +62,7 @@
   - changed-files:
       - any-glob-to-any-file:
           - package.json
-          - package-lock.json
+          - pnpm-lock.yaml
 
 🚀 CI/CD:
   - changed-files:

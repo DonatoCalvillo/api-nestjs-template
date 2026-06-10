@@ -27,6 +27,6 @@ jobs:
             Please make sure you are NOT addressing multiple issues with one PR.
             Note this PR might be rejected due to its size.
           files_to_ignore: |
-            "package-lock.json"
+            "pnpm-lock.yaml"
             "*.lock"
             "docs/*"

@@ -37,4 +37,5 @@ lerna-debug.log*
 
 .env
 posgres-data/
+postgres-data/
 .vscode/

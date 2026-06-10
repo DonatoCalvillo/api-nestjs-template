@@ -9,10 +9,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AlbertHernandez/express-typescript-service-template/actions/workflows/node.yml?branch=main"><img src="https://github.com/AlbertHernandez/express-typescript-service-template/actions/workflows/node.yml/badge.svg?branch=main" alt="nodejs"/></a>
-  <a href="https://nodejs.org/docs/latest-v20.x/api/index.html"><img src="https://img.shields.io/badge/node-20.x-green.svg" alt="node"/></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/typescript-5.x-blue.svg" alt="typescript"/></a>
-  <a href="https://www.npmjs.com/"><img src="https://img.shields.io/badge/npm-10.x-red.svg" alt="npm"/></a>
+  <a href="https://github.com/DonatoCalvillo/api-nestjs-template/actions/workflows/node.yml?branch=main"><img src="https://github.com/DonatoCalvillo/api-nestjs-template/actions/workflows/node.yml/badge.svg?branch=main" alt="nodejs"/></a>
+  <a href="https://nodejs.org/docs/latest-v22.x/api/index.html"><img src="https://img.shields.io/badge/node-22.x-green.svg" alt="node"/></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/typescript-6.x-blue.svg" alt="typescript"/></a>
+  <a href="https://pnpm.io/"><img src="https://img.shields.io/badge/pnpm-11.x-f69220.svg" alt="pnpm"/></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/Compiler-swc-blue.svg" alt="swc"/></a>
   <a href="https://jestjs.io/"><img src="https://img.shields.io/badge/Test-Jest_-C21325?logo=jest&logoColor=white" alt="Jest"/></a>
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Dockerized 🐳_-blue.svg" alt="docker"/></a>
@@ -583,7 +583,7 @@ git clone https://github.com/DonatoCalvillo/api-nestjs-template.git
 And install all dependencies
 
 ```bash
-cd api-nestjs-template && npm install
+cd api-nestjs-template && pnpm install
 ```
 
 We need to set the environments variables
@@ -617,36 +617,42 @@ Now, you should be able to start debugging configuring using your IDE. For examp
 
 Once you configure the IDE we can run 
 ```bash
-npm run start:dev
+pnpm run start:dev
 ```
 
 ### 🐳 Docker
 
-The project is dockerized so we need to run
+Copy `example.env` to `.env` before starting containers. Docker Compose overrides `DB_HOST` to `db` so the API connects to the Postgres service.
 
-- Development
+Start Postgres only:
 
 ```bash
-docker-compose up -d rest-api-dev
+docker compose up -d db
 ```
 
-- Production
+Development (hot reload + debug port `9229`):
 
 ```bash
-docker-compose up -d rest-api-prd
+docker compose up -d rest-api-dev
 ```
 
-If you want to stop the container, you can stop the service running:
+Production:
 
 ```bash
-docker-compose down
+docker compose up -d rest-api-prd
+```
+
+Stop all services:
+
+```bash
+docker compose down
 ```
 
 ## ⚙️ Building
 
 To build the api we can run 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ## 💾 Migrations
@@ -654,11 +660,6 @@ npm run build
 To generate a migration (PostgreSQL must be running and `.env` configured)
 ```bash
 pnpm migration:generate src/database/migrations/AuditLog
-```
-
-Or with npm:
-```bash
-npm run migration:generate -- src/database/migrations/AuditLog
 ```
 
 To run migrations
@@ -673,30 +674,24 @@ pnpm migration:revert
 
 ## 📋 Testing
 
-The tests are written in Mocha and the assertions done using Jest
+Tests are written with **Jest** (`jest@30.x`).
 
-```
-"jest": "^29.7.0"
-```
-
-We can run the test with the command
-
-```
-npm run test
+```bash
+pnpm run test
 ```
 
-Test files are created under test folder.
+Test files live under the `test/` folder.
 
 ## 🔦 Linting
 
 To run the linter you can execute:
 
 ```bash
-npm run lint
+pnpm run lint
 ```
 
 And for trying to fix lint issues automatically, you can run:
 
 ```bash
-npm run lint:fix
+pnpm run lint:fix
 ```
