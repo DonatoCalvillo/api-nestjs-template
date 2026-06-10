@@ -1,15 +1,19 @@
 import { PinoLogger } from 'nestjs-pino';
 import { QueryRunner } from 'typeorm';
-import { LoginUseCase } from '../src/modules/auth/application/use-cases/login.use-case';
+import { RegisterUserUseCase } from '../src/modules/auth/application/use-cases/register-user.use-case';
 import { IRefreshTokenRepository } from '../src/modules/auth/application/ports/refresh-token.repository.port';
-import { InvalidCredentialsError } from '../src/modules/auth/domain/errors/auth.errors';
+import { EmailAlreadyExistsError } from '../src/modules/auth/domain/errors/auth.errors';
 import { PasswordService } from '../src/modules/auth/infrastructure/services/password.service';
 import { TokenService } from '../src/modules/auth/infrastructure/services/token.service';
 import { ITransactionManager } from '../src/modules/shared/application/ports/transaction-manager.port';
 import { IUserRepository } from '../src/modules/users/application/ports/user.repository.port';
+import { EmailValueObject, NonEmptyStringValueObject } from 'value-object-lib';
+import { User } from '../src/modules/users/domain/models/user.model';
 
-describe('LoginUseCase', () => {
-  let useCase: LoginUseCase;
+const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+describe('RegisterUserUseCase', () => {
+  let useCase: RegisterUserUseCase;
   let userRepository: jest.Mocked<IUserRepository>;
   let passwordService: jest.Mocked<PasswordService>;
   let tokenService: jest.Mocked<TokenService>;
@@ -59,7 +63,7 @@ describe('LoginUseCase', () => {
       run: jest.fn((work) => work({} as QueryRunner)),
     };
 
-    useCase = new LoginUseCase(
+    useCase = new RegisterUserUseCase(
       logger,
       transactionManager,
       userRepository,
@@ -69,16 +73,18 @@ describe('LoginUseCase', () => {
     );
   });
 
-  it('returns tokens for valid credentials', async () => {
-    userRepository.findByEmail.mockResolvedValue({
-      id: 'user-1',
-      email: 'alice@example.com',
-      name: 'Alice',
-      roles: ['user'],
-      permissions: ['users:read'],
-      passwordHash: 'hash',
-    });
-    passwordService.compare.mockResolvedValue(true);
+  it('registers a user and returns tokens', async () => {
+    userRepository.existsByEmail.mockResolvedValue(false);
+    passwordService.hash.mockResolvedValue('password-hash');
+    userRepository.create.mockResolvedValue(
+      new User({
+        id: USER_ID,
+        props: {
+          name: new NonEmptyStringValueObject('name', 'Alice'),
+          email: new EmailValueObject('email', 'alice@example.com'),
+        },
+      }),
+    );
     tokenService.signAccessToken.mockResolvedValue({
       accessToken: 'access-token',
       expiresIn: '15m',
@@ -88,19 +94,15 @@ describe('LoginUseCase', () => {
     tokenService.getRefreshTokenExpiresAt.mockReturnValue(
       new Date('2030-01-01'),
     );
-    refreshTokenRepository.save.mockResolvedValue({
-      id: 'rt-1',
-      userId: 'user-1',
-      tokenHash: 'refresh-hash',
-      expiresAt: new Date('2030-01-01'),
-      revokedAt: null,
-    });
 
     const result = await useCase.execute({
       email: 'alice@example.com',
-      password: 'password123',
+      password: 'secret',
+      name: 'Alice',
     });
 
+    expect(userRepository.create).toHaveBeenCalled();
+    expect(refreshTokenRepository.save).toHaveBeenCalled();
     expect(result.isSuccess).toBe(true);
     expect(result.value).toEqual({
       accessToken: 'access-token',
@@ -109,15 +111,16 @@ describe('LoginUseCase', () => {
     });
   });
 
-  it('fails for invalid credentials', async () => {
-    userRepository.findByEmail.mockResolvedValue(null);
+  it('fails when email already exists', async () => {
+    userRepository.existsByEmail.mockResolvedValue(true);
 
     const result = await useCase.execute({
       email: 'alice@example.com',
-      password: 'wrong-password',
+      password: 'secret',
+      name: 'Alice',
     });
 
     expect(result.isFailure).toBe(true);
-    expect(result.error).toBeInstanceOf(InvalidCredentialsError);
+    expect(result.error).toBeInstanceOf(EmailAlreadyExistsError);
   });
 });

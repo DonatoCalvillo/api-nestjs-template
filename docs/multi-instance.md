@@ -54,7 +54,37 @@ Detalle del outbox: [domain-events.md](domain-events.md).
 
 El cliente Redis se crea solo cuando `THROTTLE_STORAGE=redis` o `OUTBOX_RELAY_LOCK=redis`, y se cierra en `onModuleDestroy`.
 
+## Probar localmente con Docker
+
+`docker-compose.yml` incluye un servicio `redis`. Para probar throttling y relay lock compartidos:
+
+```bash
+docker compose up -d db redis
+```
+
+En `.env` (o variables de entorno del contenedor):
+
+```env
+THROTTLE_STORAGE=redis
+OUTBOX_RELAY_LOCK=redis
+REDIS_URL=redis://redis:6379
+```
+
+Luego levanta la API:
+
+```bash
+docker compose up -d rest-api-dev
+```
+
+Para simular dos réplicas detrás de un load balancer:
+
+```bash
+docker compose --profile multi-instance up -d db redis rest-api-prd rest-api-prd-2
+```
+
+La segunda réplica expone el puerto `3001` por defecto (`PORT_2` en `.env`).
+
 ## Notas
 
 - **`TRUST_PROXY=true`** sigue siendo recomendable detrás de un load balancer para que el throttler identifique la IP real del cliente.
-- La recuperación de filas `processing` huérfanas (crash post-claim) no está cubierta en esta versión; planifica un job de reclaim si lo necesitas.
+- Las filas `processing` huérfanas (crash post-claim) se recuperan automáticamente vía reclaim (`OUTBOX_RECLAIM_ENABLED`, `OUTBOX_STALE_PROCESSING_SECONDS`). La entrega es at-least-once; los consumidores deben ser idempotentes ([idempotency.md](idempotency.md)).

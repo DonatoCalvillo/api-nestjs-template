@@ -52,6 +52,9 @@ interface EnvironmentVariables {
   OUTBOX_RELAY_CRON: string;
   OUTBOX_RELAY_BATCH_SIZE: number;
   OUTBOX_RELAY_MAX_ATTEMPTS: number;
+  OUTBOX_RECLAIM_ENABLED: boolean;
+  OUTBOX_STALE_PROCESSING_SECONDS: number;
+  MESSAGE_BROKER_ADAPTER: 'noop' | 'logging';
   SWAGGER_ENABLED: boolean;
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
@@ -128,6 +131,12 @@ const environmentSchema = joi
     OUTBOX_RELAY_CRON: joi.string().default('*/5 * * * * *'),
     OUTBOX_RELAY_BATCH_SIZE: joi.number().min(1).default(50),
     OUTBOX_RELAY_MAX_ATTEMPTS: joi.number().min(1).default(5),
+    OUTBOX_RECLAIM_ENABLED: booleanEnv(true),
+    OUTBOX_STALE_PROCESSING_SECONDS: joi.number().min(1).default(300),
+    MESSAGE_BROKER_ADAPTER: joi
+      .string()
+      .valid('noop', 'logging')
+      .default('noop'),
     SWAGGER_ENABLED: booleanEnv(process.env.NODE_ENV === 'development'),
     JWT_ACCESS_SECRET: joi.string().when('NODE_ENV', {
       is: 'production',
@@ -173,8 +182,8 @@ if (
   environmentVariables.NODE_ENV === 'production' &&
   environmentVariables.CORS_ORIGINS === '*'
 ) {
-  console.warn(
-    'CORS_ORIGINS=* in production allows any origin. Set explicit origins.',
+  throw new ConfigurationEnvironmentVariableError(
+    'CORS_ORIGINS cannot be "*" in production. Set explicit comma-separated origins.',
   );
 }
 
@@ -224,6 +233,10 @@ export const ENVIRONMENT_VARIABLES = {
   OUTBOX_RELAY_CRON: environmentVariables.OUTBOX_RELAY_CRON,
   OUTBOX_RELAY_BATCH_SIZE: environmentVariables.OUTBOX_RELAY_BATCH_SIZE,
   OUTBOX_RELAY_MAX_ATTEMPTS: environmentVariables.OUTBOX_RELAY_MAX_ATTEMPTS,
+  OUTBOX_RECLAIM_ENABLED: environmentVariables.OUTBOX_RECLAIM_ENABLED,
+  OUTBOX_STALE_PROCESSING_SECONDS:
+    environmentVariables.OUTBOX_STALE_PROCESSING_SECONDS,
+  MESSAGE_BROKER_ADAPTER: environmentVariables.MESSAGE_BROKER_ADAPTER,
   SWAGGER_ENABLED: environmentVariables.SWAGGER_ENABLED,
   JWT_ACCESS_SECRET: environmentVariables.JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET: environmentVariables.JWT_REFRESH_SECRET,

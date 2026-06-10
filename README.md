@@ -420,7 +420,7 @@ The API supports HTTP security headers (Helmet), CORS, rate limiting, and IP all
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CORS_ENABLED` | `true` | Enable CORS headers |
-| `CORS_ORIGINS` | `*` | Allowed origins, comma-separated. Use `*` to allow all |
+| `CORS_ORIGINS` | `*` | Allowed origins, comma-separated. Use `*` to allow all (not allowed in production — use explicit origins) |
 | `CORS_CREDENTIALS` | `false` | Send `Access-Control-Allow-Credentials`. Cannot be used with `CORS_ORIGINS=*` |
 | `HELMET_ENABLED` | `true` | Enable Helmet HTTP security headers |
 | `THROTTLE_ENABLED` | `true` | Enable global rate limiting |
@@ -644,6 +644,14 @@ Start Postgres only:
 docker compose up -d db
 ```
 
+Start Postgres and Redis (for multi-instance / shared throttling):
+
+```bash
+docker compose up -d db redis
+```
+
+Set `THROTTLE_STORAGE=redis`, `OUTBOX_RELAY_LOCK=redis`, and `REDIS_URL=redis://redis:6379` in `.env`. See [docs/multi-instance.md](docs/multi-instance.md).
+
 Development (hot reload + debug port `9229`):
 
 ```bash
@@ -713,6 +721,8 @@ pnpm run test
 ```
 
 Test files live under the `test/` folder.
+
+Coverage gates (`pnpm run test:cov`): **80%** minimum for `shared/`, `auth/`, and `users/` modules (unit project).
 
 ## 🔦 Linting
 

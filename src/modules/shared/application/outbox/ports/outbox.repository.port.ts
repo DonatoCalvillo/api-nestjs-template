@@ -17,5 +17,6 @@ export interface IOutboxRepository {
   markPublished(ids: string[]): Promise<void>;
   markFailed(id: string, error: string, attempts: number): Promise<void>;
   resetToPending(id: string, error: string, attempts: number): Promise<void>;
+  reclaimStaleProcessing(olderThan: Date): Promise<number>;
   countByStatus(status: OutboxMessageStatus): Promise<number>;
 }

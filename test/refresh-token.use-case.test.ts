@@ -2,7 +2,10 @@ import { PinoLogger } from 'nestjs-pino';
 import { QueryRunner } from 'typeorm';
 import { RefreshTokenUseCase } from '../src/modules/auth/application/use-cases/refresh-token.use-case';
 import { IRefreshTokenRepository } from '../src/modules/auth/application/ports/refresh-token.repository.port';
-import { InvalidRefreshTokenError } from '../src/modules/auth/domain/errors/auth.errors';
+import {
+  InvalidRefreshTokenError,
+  RefreshTokenReuseDetectedError,
+} from '../src/modules/auth/domain/errors/auth.errors';
 import { TokenService } from '../src/modules/auth/infrastructure/services/token.service';
 import { ITransactionManager } from '../src/modules/shared/application/ports/transaction-manager.port';
 import { IUserRepository } from '../src/modules/users/application/ports/user.repository.port';
@@ -12,6 +15,7 @@ describe('RefreshTokenUseCase', () => {
   let userRepository: jest.Mocked<IUserRepository>;
   let tokenService: jest.Mocked<TokenService>;
   let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
+  let logger: jest.Mocked<PinoLogger>;
 
   beforeEach(() => {
     userRepository = {
@@ -35,16 +39,18 @@ describe('RefreshTokenUseCase', () => {
     refreshTokenRepository = {
       save: jest.fn(),
       findValidByHash: jest.fn(),
+      findByHash: jest.fn(),
+      consumeValidByHash: jest.fn(),
       revoke: jest.fn(),
       revokeAllForUser: jest.fn(),
     };
 
-    const logger = {
+    logger = {
       setContext: jest.fn(),
       info: jest.fn(),
       error: jest.fn(),
       warn: jest.fn(),
-    } as unknown as PinoLogger;
+    } as unknown as jest.Mocked<PinoLogger>;
 
     const transactionManager: ITransactionManager = {
       run: jest.fn((work) => work({} as QueryRunner)),
@@ -61,12 +67,19 @@ describe('RefreshTokenUseCase', () => {
 
   it('rotates refresh token and returns a new token pair', async () => {
     tokenService.hashRefreshToken.mockReturnValue('refresh-hash');
-    refreshTokenRepository.findValidByHash.mockResolvedValue({
+    refreshTokenRepository.findByHash.mockResolvedValue({
       id: 'rt-1',
       userId: 'user-1',
       tokenHash: 'refresh-hash',
       expiresAt: new Date('2030-01-01'),
       revokedAt: null,
+    });
+    refreshTokenRepository.consumeValidByHash.mockResolvedValue({
+      id: 'rt-1',
+      userId: 'user-1',
+      tokenHash: 'refresh-hash',
+      expiresAt: new Date('2030-01-01'),
+      revokedAt: new Date(),
     });
     userRepository.findByIdWithRolesAndPermissions.mockResolvedValue({
       id: 'user-1',
@@ -86,8 +99,8 @@ describe('RefreshTokenUseCase', () => {
 
     const result = await useCase.execute({ refreshToken: 'old-refresh-token' });
 
-    expect(refreshTokenRepository.revoke).toHaveBeenCalledWith(
-      'rt-1',
+    expect(refreshTokenRepository.consumeValidByHash).toHaveBeenCalledWith(
+      'refresh-hash',
       expect.anything(),
     );
     expect(refreshTokenRepository.save).toHaveBeenCalled();
@@ -101,9 +114,50 @@ describe('RefreshTokenUseCase', () => {
 
   it('fails when refresh token is invalid', async () => {
     tokenService.hashRefreshToken.mockReturnValue('refresh-hash');
-    refreshTokenRepository.findValidByHash.mockResolvedValue(null);
+    refreshTokenRepository.findByHash.mockResolvedValue(null);
 
     const result = await useCase.execute({ refreshToken: 'invalid-token' });
+
+    expect(result.isFailure).toBe(true);
+    expect(result.error).toBeInstanceOf(InvalidRefreshTokenError);
+  });
+
+  it('revokes all sessions when a revoked refresh token is reused', async () => {
+    tokenService.hashRefreshToken.mockReturnValue('refresh-hash');
+    refreshTokenRepository.findByHash.mockResolvedValue({
+      id: 'rt-1',
+      userId: 'user-1',
+      tokenHash: 'refresh-hash',
+      expiresAt: new Date('2030-01-01'),
+      revokedAt: new Date('2026-01-01'),
+    });
+
+    const result = await useCase.execute({ refreshToken: 'reused-token' });
+
+    expect(refreshTokenRepository.revokeAllForUser).toHaveBeenCalledWith(
+      'user-1',
+      expect.anything(),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      { userId: 'user-1' },
+      'Refresh token reuse detected; all sessions revoked',
+    );
+    expect(result.isFailure).toBe(true);
+    expect(result.error).toBeInstanceOf(RefreshTokenReuseDetectedError);
+  });
+
+  it('fails when concurrent consume loses the race', async () => {
+    tokenService.hashRefreshToken.mockReturnValue('refresh-hash');
+    refreshTokenRepository.findByHash.mockResolvedValue({
+      id: 'rt-1',
+      userId: 'user-1',
+      tokenHash: 'refresh-hash',
+      expiresAt: new Date('2030-01-01'),
+      revokedAt: null,
+    });
+    refreshTokenRepository.consumeValidByHash.mockResolvedValue(null);
+
+    const result = await useCase.execute({ refreshToken: 'old-refresh-token' });
 
     expect(result.isFailure).toBe(true);
     expect(result.error).toBeInstanceOf(InvalidRefreshTokenError);

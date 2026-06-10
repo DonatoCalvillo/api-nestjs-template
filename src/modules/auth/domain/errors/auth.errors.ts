@@ -26,6 +26,14 @@ export class InvalidRefreshTokenError extends UnauthorizedError {
   }
 }
 
+export class RefreshTokenReuseDetectedError extends UnauthorizedError {
+  readonly code: string = 'E-AUTH-006';
+
+  constructor() {
+    super('Refresh token reuse detected. All sessions have been revoked.');
+  }
+}
+
 export class UnauthorizedAccessError extends UnauthorizedError {
   readonly code: string = 'E-AUTH-004';
 

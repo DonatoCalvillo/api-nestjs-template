@@ -20,6 +20,11 @@ export interface IRefreshTokenRepository {
     trx?: QueryRunner,
   ): Promise<StoredRefreshToken>;
   findValidByHash(tokenHash: string): Promise<StoredRefreshToken | null>;
+  findByHash(tokenHash: string): Promise<StoredRefreshToken | null>;
+  consumeValidByHash(
+    tokenHash: string,
+    trx?: QueryRunner,
+  ): Promise<StoredRefreshToken | null>;
   revoke(id: string, trx?: QueryRunner): Promise<void>;
   revokeAllForUser(userId: string, trx?: QueryRunner): Promise<void>;
 }

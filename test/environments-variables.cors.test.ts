@@ -17,7 +17,7 @@ const loadEnvironmentVariables = async (): Promise<void> => {
   await import('../src/configuration/environments-variables');
 };
 
-describe('environments-variables CORS production warning', () => {
+describe('environments-variables CORS production validation', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -29,32 +29,25 @@ describe('environments-variables CORS production warning', () => {
     process.env = originalEnv;
   });
 
-  it('warns when CORS_ORIGINS is * in production', async () => {
-    const warnSpy = jest
-      .spyOn(console, 'warn')
-      .mockImplementation(() => undefined);
-
-    await loadEnvironmentVariables();
-
-    expect(warnSpy).toHaveBeenCalledWith(
-      'CORS_ORIGINS=* in production allows any origin. Set explicit origins.',
-    );
-
-    warnSpy.mockRestore();
+  it('throws when CORS_ORIGINS is * in production', async () => {
+    try {
+      await loadEnvironmentVariables();
+      fail('Expected load to throw');
+    } catch (error) {
+      expect((error as Error).message).toContain('CORS_ORIGINS cannot be "*"');
+      expect((error as { code?: string }).code).toBe('E-CONFIG');
+    }
   });
 
-  it('does not warn when CORS_ORIGINS is explicit in production', async () => {
+  it('does not throw when CORS_ORIGINS is explicit in production', async () => {
     process.env.CORS_ORIGINS = 'https://app.example.com';
-    const warnSpy = jest
-      .spyOn(console, 'warn')
-      .mockImplementation(() => undefined);
 
-    await loadEnvironmentVariables();
+    await expect(loadEnvironmentVariables()).resolves.toBeUndefined();
+  });
 
-    expect(warnSpy).not.toHaveBeenCalledWith(
-      'CORS_ORIGINS=* in production allows any origin. Set explicit origins.',
-    );
+  it('does not throw when CORS_ORIGINS is * in development', async () => {
+    process.env.NODE_ENV = 'development';
 
-    warnSpy.mockRestore();
+    await expect(loadEnvironmentVariables()).resolves.toBeUndefined();
   });
 });

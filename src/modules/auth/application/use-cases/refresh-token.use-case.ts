@@ -10,7 +10,10 @@ import {
   ITransactionManager,
   TRANSACTION_MANAGER,
 } from '../../../shared/application';
-import { InvalidRefreshTokenError } from '../../domain/errors/auth.errors';
+import {
+  InvalidRefreshTokenError,
+  RefreshTokenReuseDetectedError,
+} from '../../domain/errors/auth.errors';
 import {
   IRefreshTokenRepository,
   REFRESH_TOKEN_REPOSITORY,
@@ -47,21 +50,41 @@ export class RefreshTokenUseCase extends CommandUseCase<
     trx?: QueryRunner,
   ): Promise<TokenPair> {
     const tokenHash = this.tokenService.hashRefreshToken(command.refreshToken);
-    const stored = await this.refreshTokenRepository.findValidByHash(tokenHash);
+    const stored = await this.refreshTokenRepository.findByHash(tokenHash);
 
     if (!stored) {
       throw new InvalidRefreshTokenError();
     }
 
+    if (stored.revokedAt !== null) {
+      await this.refreshTokenRepository.revokeAllForUser(stored.userId, trx);
+      this.logger.warn(
+        { userId: stored.userId },
+        'Refresh token reuse detected; all sessions revoked',
+      );
+      throw new RefreshTokenReuseDetectedError();
+    }
+
+    if (stored.expiresAt <= new Date()) {
+      throw new InvalidRefreshTokenError();
+    }
+
+    const consumed = await this.refreshTokenRepository.consumeValidByHash(
+      tokenHash,
+      trx,
+    );
+
+    if (!consumed) {
+      throw new InvalidRefreshTokenError();
+    }
+
     const user = await this.userRepository.findByIdWithRolesAndPermissions(
-      stored.userId,
+      consumed.userId,
     );
 
     if (!user) {
       throw new InvalidRefreshTokenError();
     }
-
-    await this.refreshTokenRepository.revoke(stored.id, trx);
 
     const { accessToken, expiresIn } = await this.tokenService.signAccessToken(
       user.id,

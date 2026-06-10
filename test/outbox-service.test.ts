@@ -40,6 +40,8 @@ describe('OutboxService', () => {
       markPublished: jest.fn(),
       markFailed: jest.fn(),
       resetToPending: jest.fn(),
+      reclaimStaleProcessing: jest.fn(),
+      countByStatus: jest.fn(),
     };
 
     service = new OutboxService(

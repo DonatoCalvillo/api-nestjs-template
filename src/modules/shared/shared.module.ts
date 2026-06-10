@@ -42,6 +42,7 @@ import {
   RedisDistributedLock,
 } from './infrastructure/locking';
 import {
+  LoggingMessageBrokerPublisher,
   NoOpMessageBrokerPublisher,
   OutboxMessageEntity,
   OutboxRelayService,
@@ -115,9 +116,17 @@ import { TraceContextService } from './infrastructure/tracing';
       useExisting: OutboxService,
     },
     NoOpMessageBrokerPublisher,
+    LoggingMessageBrokerPublisher,
     {
       provide: MESSAGE_BROKER_PUBLISHER,
-      useExisting: NoOpMessageBrokerPublisher,
+      useFactory: (
+        noopPublisher: NoOpMessageBrokerPublisher,
+        loggingPublisher: LoggingMessageBrokerPublisher,
+      ) =>
+        ENVIRONMENT_VARIABLES.MESSAGE_BROKER_ADAPTER === 'logging'
+          ? loggingPublisher
+          : noopPublisher,
+      inject: [NoOpMessageBrokerPublisher, LoggingMessageBrokerPublisher],
     },
     OutboxRelayService,
     ...(ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK === 'redis'

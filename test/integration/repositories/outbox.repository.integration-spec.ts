@@ -92,4 +92,39 @@ describe('TypeOrmOutboxRepository (integration)', () => {
       0,
     );
   });
+
+  it('sets claimed_at when claiming and reclaims stale processing rows', async () => {
+    await repository.insertMany([
+      {
+        eventName: 'UserRegistered',
+        aggregateType: 'User',
+        aggregateId: 'user-1',
+        payload: { email: 'user@example.com' },
+        status: OutboxMessageStatus.Pending,
+      },
+    ]);
+
+    const claimed = await repository.claimPendingBatch(10);
+    expect(claimed).toHaveLength(1);
+
+    const processingEntity = await dataSource
+      .getRepository(OutboxMessageEntity)
+      .findOneBy({ id: claimed[0].id });
+
+    expect(processingEntity?.status).toBe(OutboxMessageStatus.Processing);
+    expect(processingEntity?.claimedAt).toBeInstanceOf(Date);
+
+    const reclaimed = await repository.reclaimStaleProcessing(
+      new Date(Date.now() + 60_000),
+    );
+
+    expect(reclaimed).toBe(1);
+
+    const pendingEntity = await dataSource
+      .getRepository(OutboxMessageEntity)
+      .findOneBy({ id: claimed[0].id });
+
+    expect(pendingEntity?.status).toBe(OutboxMessageStatus.Pending);
+    expect(pendingEntity?.claimedAt).toBeNull();
+  });
 });

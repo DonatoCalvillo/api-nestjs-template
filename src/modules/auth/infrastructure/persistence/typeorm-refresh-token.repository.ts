@@ -56,6 +56,33 @@ export class TypeOrmRefreshTokenRepository implements IRefreshTokenRepository {
     return entity ? this.toStored(entity) : null;
   }
 
+  async findByHash(tokenHash: string): Promise<StoredRefreshToken | null> {
+    const entity = await this.getRepo().findOne({
+      where: { tokenHash },
+    });
+
+    return entity ? this.toStored(entity) : null;
+  }
+
+  async consumeValidByHash(
+    tokenHash: string,
+    trx?: QueryRunner,
+  ): Promise<StoredRefreshToken | null> {
+    const manager = trx ? trx.manager : this.dataSource.manager;
+    const rows: RefreshTokenEntity[] = await manager.query(
+      `UPDATE refresh_tokens
+       SET revoked_at = NOW()
+       WHERE token_hash = $1
+         AND revoked_at IS NULL
+         AND expires_at > NOW()
+       RETURNING *`,
+      [tokenHash],
+    );
+
+    const entity = rows[0];
+    return entity ? this.toStored(entity) : null;
+  }
+
   async revoke(id: string, trx?: QueryRunner): Promise<void> {
     await this.getRepo(trx).update(id, { revokedAt: new Date() });
   }

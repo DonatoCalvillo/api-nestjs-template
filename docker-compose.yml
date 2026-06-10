@@ -15,6 +15,21 @@ services:
     networks:
       - my-network
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - my-network
+
   rest-api-dev:
     build:
       context: .
@@ -31,7 +46,10 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./tsconfig.build.json:/app/tsconfig.build.json
     depends_on:
-      - db
+      db:
+        condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - my-network
 
@@ -47,10 +65,40 @@ services:
       - "${PORT:-3000}:3000"
     stop_grace_period: 35s
     depends_on:
-      - db
+      db:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - my-network
+
+  # Second replica for local multi-instance testing (profile: multi-instance)
+  # Set in .env: THROTTLE_STORAGE=redis, OUTBOX_RELAY_LOCK=redis, REDIS_URL=redis://redis:6379
+  rest-api-prd-2:
+    profiles:
+      - multi-instance
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: rest-api-prd-2
+    env_file: .env
+    environment:
+      DB_HOST: db
+    ports:
+      - "${PORT_2:-3001}:3000"
+    stop_grace_period: 35s
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - my-network
 
 networks:
   my-network:
     driver: bridge
+
+volumes:
+  redis-data:

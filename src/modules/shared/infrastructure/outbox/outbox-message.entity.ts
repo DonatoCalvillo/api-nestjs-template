@@ -37,4 +37,7 @@ export class OutboxMessageEntity {
 
   @Column({ type: 'timestamptz', nullable: true, name: 'processed_at' })
   processedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true, name: 'claimed_at' })
+  claimedAt: Date | null;
 }

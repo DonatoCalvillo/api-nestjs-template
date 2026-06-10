@@ -135,6 +135,9 @@ This creates the `outbox_messages` table. See `src/database/migrations/178200000
 | `OUTBOX_RELAY_CRON` | `*/5 * * * * *` | Cron expression (seconds supported) |
 | `OUTBOX_RELAY_BATCH_SIZE` | `50` | Max rows claimed per run |
 | `OUTBOX_RELAY_MAX_ATTEMPTS` | `5` | Retries before marking `failed` |
+| `OUTBOX_RECLAIM_ENABLED` | `true` | Reclaim stale `processing` rows at the start of each relay batch |
+| `OUTBOX_STALE_PROCESSING_SECONDS` | `300` | Minimum age before a `processing` row is reset to `pending` |
+| `MESSAGE_BROKER_ADAPTER` | `noop` | Built-in publisher: `noop` (silent) or `logging` (stdout) |
 | `OUTBOX_RELAY_LOCK` | `memory` | `memory` = overlap guard per pod; `redis` = single global relay worker |
 | `OUTBOX_RELAY_LOCK_TTL_SECONDS` | `120` | Redis lock TTL when `OUTBOX_RELAY_LOCK=redis` |
 | `REDIS_URL` | — | Required when `OUTBOX_RELAY_LOCK=redis` (see [multi-instance.md](multi-instance.md)) |
@@ -145,28 +148,50 @@ Enable the relay in environments where a real broker adapter is registered:
 OUTBOX_RELAY_ENABLED=true
 ```
 
-### Replace the no-op publisher
+### Message broker adapters
 
-`SharedModule` registers `NoOpMessageBrokerPublisher` by default (logs and succeeds). For production, provide your own adapter:
+`SharedModule` selects the publisher via `MESSAGE_BROKER_ADAPTER`:
+
+| Adapter | Env value | Behavior |
+|---------|-----------|----------|
+| No-op (default) | `noop` | Debug log only; succeeds without external delivery |
+| Logging | `logging` | Info log with event name and trace metadata; useful in dev/staging |
+
+```env
+MESSAGE_BROKER_ADAPTER=logging
+OUTBOX_RELAY_ENABLED=true
+```
+
+For production cross-service delivery, register a **custom** `IMessageBrokerPublisher` in your app module (RabbitMQ, Kafka, SQS, etc.). The template does not ship broker client dependencies — add the client library in your project and override the provider:
 
 ```typescript
 @Injectable()
 export class RabbitMqMessageBrokerPublisher implements IMessageBrokerPublisher {
   async publish(envelope: DomainEventEnvelope): Promise<void> {
-    await this.channel.publish(
+    const ok = this.channel.publish(
       'domain-events',
       envelope.event.eventName,
       Buffer.from(JSON.stringify(envelope)),
+      {
+        persistent: true,
+        headers: {
+          traceId: envelope.metadata.traceId,
+          requestId: envelope.metadata.requestId,
+        },
+      },
     );
+    if (!ok) throw new Error('RabbitMQ publish buffer full');
   }
 }
 
-// In your module:
+// In AppModule or a dedicated MessagingModule:
 {
   provide: MESSAGE_BROKER_PUBLISHER,
   useClass: RabbitMqMessageBrokerPublisher,
 }
 ```
+
+**Contract:** `publish()` must **throw** on failure so the relay can retry. Include the outbox row `id` in message headers when possible so consumers can deduplicate.
 
 The relay passes the full `DomainEventEnvelope` (event + actor/request/trace metadata), same shape as `@OnEvent()` handlers.
 
@@ -178,6 +203,7 @@ The relay passes the full `DomainEventEnvelope` (event + actor/request/trace met
 | External delivery | At-least-once (consumers must be idempotent; see [idempotency.md](idempotency.md#relación-con-el-outbox-mensajería)) |
 | In-process handlers | Still fire-and-forget after commit; not durable across restarts |
 | Failed relay | Retries up to `OUTBOX_RELAY_MAX_ATTEMPTS`, then `failed` status |
+| Orphan `processing` rows | Reclaimed to `pending` after `OUTBOX_STALE_PROCESSING_SECONDS` (at-least-once; consumers must be idempotent) |
 | Multi-instance | Row claiming via `SKIP LOCKED`; optional Redis lock for single relay worker — [multi-instance.md](multi-instance.md) |
 
 ## Listen from another module

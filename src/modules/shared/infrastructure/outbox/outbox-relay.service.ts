@@ -94,6 +94,22 @@ export class OutboxRelayService {
     try {
       await this.refreshOutboxPendingMetrics();
 
+      if (ENVIRONMENT_VARIABLES.OUTBOX_RECLAIM_ENABLED) {
+        const olderThan = new Date(
+          Date.now() -
+            ENVIRONMENT_VARIABLES.OUTBOX_STALE_PROCESSING_SECONDS * 1000,
+        );
+        const reclaimed =
+          await this.outboxRepository.reclaimStaleProcessing(olderThan);
+
+        if (reclaimed > 0) {
+          this.logger.warn(
+            { reclaimed },
+            'Reclaimed stale outbox messages from processing',
+          );
+        }
+      }
+
       const batch = await this.outboxRepository.claimPendingBatch(
         ENVIRONMENT_VARIABLES.OUTBOX_RELAY_BATCH_SIZE,
       );
@@ -102,15 +118,48 @@ export class OutboxRelayService {
         return;
       }
 
-      const publishedIds: string[] = [];
-
       for (const message of batch) {
-        const envelope = deserializeDomainEventEnvelope(message.payload);
+        let envelope;
+
+        try {
+          envelope = deserializeDomainEventEnvelope(message.payload);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const nextAttempts = message.attempts + 1;
+
+          if (nextAttempts >= ENVIRONMENT_VARIABLES.OUTBOX_RELAY_MAX_ATTEMPTS) {
+            await this.outboxRepository.markFailed(
+              message.id,
+              errorMessage,
+              nextAttempts,
+            );
+            this.businessMetrics.recordOutboxFailed(message.eventName);
+          } else {
+            await this.outboxRepository.resetToPending(
+              message.id,
+              errorMessage,
+              nextAttempts,
+            );
+          }
+
+          this.logger.error(
+            {
+              err: error instanceof Error ? error : new Error(errorMessage),
+              outboxMessageId: message.id,
+              eventName: message.eventName,
+            },
+            'Outbox message deserialization failed',
+          );
+          continue;
+        }
+
         const nextAttempts = message.attempts + 1;
 
         try {
           await this.messageBrokerPublisher.publish(envelope);
-          publishedIds.push(message.id);
+          await this.outboxRepository.markPublished([message.id]);
+          this.businessMetrics.recordOutboxPublished(message.eventName);
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
@@ -148,16 +197,6 @@ export class OutboxRelayService {
             },
             'Outbox message publish failed, will retry',
           );
-        }
-      }
-
-      if (publishedIds.length > 0) {
-        await this.outboxRepository.markPublished(publishedIds);
-
-        for (const message of batch) {
-          if (publishedIds.includes(message.id)) {
-            this.businessMetrics.recordOutboxPublished(message.eventName);
-          }
         }
       }
     } catch (error) {

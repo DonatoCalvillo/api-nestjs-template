@@ -55,7 +55,10 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
       await queryRunner.manager
         .createQueryBuilder()
         .update(OutboxMessageEntity)
-        .set({ status: OutboxMessageStatus.Processing })
+        .set({
+          status: OutboxMessageStatus.Processing,
+          claimedAt: () => 'NOW()',
+        })
         .whereInIds(ids)
         .execute();
 
@@ -118,9 +121,26 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
         status: OutboxMessageStatus.Pending,
         lastError: error,
         attempts,
+        claimedAt: null,
       })
       .where('id = :id', { id })
       .execute();
+  }
+
+  async reclaimStaleProcessing(olderThan: Date): Promise<number> {
+    const result = await this.dataSource
+      .createQueryBuilder()
+      .update(OutboxMessageEntity)
+      .set({
+        status: OutboxMessageStatus.Pending,
+        claimedAt: null,
+      })
+      .where('status = :status', { status: OutboxMessageStatus.Processing })
+      .andWhere('claimed_at IS NOT NULL')
+      .andWhere('claimed_at < :olderThan', { olderThan })
+      .execute();
+
+    return result.affected ?? 0;
   }
 
   async countByStatus(status: OutboxMessageStatus): Promise<number> {
