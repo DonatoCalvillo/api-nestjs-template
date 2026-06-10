@@ -59,6 +59,14 @@ interface EnvironmentVariables {
   IDEMPOTENCY_ENABLED: boolean;
   IDEMPOTENCY_TTL_HOURS: number;
   IDEMPOTENCY_CLEANUP_CRON: string;
+  SHUTDOWN_DRAIN_TIMEOUT_MS: number;
+  DB_SSL: boolean;
+  DB_POOL_MAX: number;
+  DB_POOL_IDLE_TIMEOUT_MS: number;
+  DB_MIGRATIONS_RUN: boolean;
+  HTTP_BODY_LIMIT: string;
+  HTTP_REQUEST_TIMEOUT_MS: number;
+  LOG_LEVEL: string;
 }
 
 const environmentSchema = joi
@@ -135,6 +143,17 @@ const environmentSchema = joi
     IDEMPOTENCY_ENABLED: booleanEnv(true),
     IDEMPOTENCY_TTL_HOURS: joi.number().min(1).default(24),
     IDEMPOTENCY_CLEANUP_CRON: joi.string().default('0 */6 * * *'),
+    SHUTDOWN_DRAIN_TIMEOUT_MS: joi.number().min(1000).default(30000),
+    DB_SSL: booleanEnv(false),
+    DB_POOL_MAX: joi.number().min(1).default(20),
+    DB_POOL_IDLE_TIMEOUT_MS: joi.number().min(1000).default(30000),
+    DB_MIGRATIONS_RUN: booleanEnv(false),
+    HTTP_BODY_LIMIT: joi.string().default('1mb'),
+    HTTP_REQUEST_TIMEOUT_MS: joi.number().min(1000).default(30000),
+    LOG_LEVEL: joi
+      .string()
+      .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
+      .default('info'),
   })
   .unknown();
 
@@ -197,6 +216,14 @@ export const ENVIRONMENT_VARIABLES = {
   IDEMPOTENCY_ENABLED: environmentVariables.IDEMPOTENCY_ENABLED,
   IDEMPOTENCY_TTL_HOURS: environmentVariables.IDEMPOTENCY_TTL_HOURS,
   IDEMPOTENCY_CLEANUP_CRON: environmentVariables.IDEMPOTENCY_CLEANUP_CRON,
+  SHUTDOWN_DRAIN_TIMEOUT_MS: environmentVariables.SHUTDOWN_DRAIN_TIMEOUT_MS,
+  DB_SSL: environmentVariables.DB_SSL,
+  DB_POOL_MAX: environmentVariables.DB_POOL_MAX,
+  DB_POOL_IDLE_TIMEOUT_MS: environmentVariables.DB_POOL_IDLE_TIMEOUT_MS,
+  DB_MIGRATIONS_RUN: environmentVariables.DB_MIGRATIONS_RUN,
+  HTTP_BODY_LIMIT: environmentVariables.HTTP_BODY_LIMIT,
+  HTTP_REQUEST_TIMEOUT_MS: environmentVariables.HTTP_REQUEST_TIMEOUT_MS,
+  LOG_LEVEL: environmentVariables.LOG_LEVEL,
 };
 
 export const isRedisEnabled = (): boolean =>

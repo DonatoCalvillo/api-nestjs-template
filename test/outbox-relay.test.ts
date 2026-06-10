@@ -12,14 +12,17 @@ import { IOutboxRepository } from '../src/modules/shared/application/outbox/port
 import { IMessageBrokerPublisher } from '../src/modules/shared/application/outbox/ports/message-broker.publisher.port';
 import { IDistributedLock } from '../src/modules/shared/application/locking/ports/distributed-lock.port';
 import { ANONYMOUS_ACTOR } from '../src/modules/shared/application/audit/types/actor-snapshot';
+import { ShutdownStateService } from '../src/configuration/shutdown/shutdown-state.service';
 
 describe('OutboxRelayService', () => {
   let repository: jest.Mocked<IOutboxRepository>;
   let publisher: jest.Mocked<IMessageBrokerPublisher>;
   let distributedLock: jest.Mocked<IDistributedLock>;
+  let shutdownState: ShutdownStateService;
   let relay: OutboxRelayService;
 
   beforeEach(() => {
+    shutdownState = new ShutdownStateService();
     repository = {
       insertMany: jest.fn(),
       claimPendingBatch: jest.fn(),
@@ -37,7 +40,12 @@ describe('OutboxRelayService', () => {
       release: jest.fn().mockResolvedValue(undefined),
     };
 
-    relay = new OutboxRelayService(repository, publisher, distributedLock);
+    relay = new OutboxRelayService(
+      repository,
+      publisher,
+      distributedLock,
+      shutdownState,
+    );
   });
 
   it('skips processing when lock cannot be acquired', async () => {

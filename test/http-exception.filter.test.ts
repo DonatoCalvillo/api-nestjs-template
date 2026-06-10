@@ -133,4 +133,21 @@ describe('HttpExceptionFilter', () => {
     expect(json).toHaveBeenCalledWith(terminusBody);
     expect(json.mock.calls[0][0].success).toBeUndefined();
   });
+
+  it('keeps shutting_down Terminus body on /health/ready', () => {
+    const terminusBody = {
+      status: 'shutting_down',
+      info: {},
+      error: { app: { status: 'down', message: 'Server is shutting down' } },
+      details: { app: { status: 'down', message: 'Server is shutting down' } },
+    };
+
+    filter.catch(
+      new HttpException(terminusBody, HttpStatus.SERVICE_UNAVAILABLE),
+      createHost('/health/ready'),
+    );
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
+    expect(json).toHaveBeenCalledWith(terminusBody);
+  });
 });

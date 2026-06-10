@@ -12,6 +12,8 @@ import {
 import request from 'supertest';
 import { LoggerModule } from 'nestjs-pino';
 import { ENVIRONMENT_VARIABLES } from '../src/configuration/environments-variables';
+import { ShutdownStateModule } from '../src/configuration/shutdown/shutdown-state.module';
+import { ShutdownStateService } from '../src/configuration/shutdown/shutdown-state.service';
 import { HealthyModule } from '../src/modules/healthy/healthy.module';
 import { HttpExceptionFilter } from '../src/modules/shared/infrastructure/filters/http-exception.filter';
 import { TraceContextService } from '../src/modules/shared/infrastructure/tracing/trace-context.service';
@@ -21,11 +23,18 @@ const createTestingApp = async (
     typeOrm?: Partial<TypeOrmHealthIndicator>;
     disk?: Partial<DiskHealthIndicator>;
     http?: Partial<HttpHealthIndicator>;
+    shutdownState?: Partial<ShutdownStateService>;
   } = {},
 ) => {
+  const shutdownState = {
+    isShuttingDown: false,
+    markShuttingDown: jest.fn(),
+    ...overrides.shutdownState,
+  };
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [
       LoggerModule.forRoot({ pinoHttp: { level: 'silent' } }),
+      ShutdownStateModule,
       TerminusModule,
       HttpModule,
       HealthyModule,
@@ -66,6 +75,8 @@ const createTestingApp = async (
       }),
       ...overrides.http,
     })
+    .overrideProvider(ShutdownStateService)
+    .useValue(shutdownState)
     .compile();
 
   const app = moduleFixture.createNestApplication();
@@ -107,6 +118,24 @@ describe('HealthyController (e2e)', () => {
         expect(res.body.status).toBe('ok');
         expect(res.body.details.database.status).toBe('up');
         expect(res.body.details.storage).toBeUndefined();
+      });
+  });
+
+  it('/health/ready (GET) returns 503 with shutting_down during graceful shutdown', async () => {
+    ({ app } = await createTestingApp({
+      shutdownState: {
+        isShuttingDown: true,
+        markShuttingDown: jest.fn(),
+      },
+    }));
+
+    return request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(503)
+      .expect((res) => {
+        expect(res.body.status).toBe('shutting_down');
+        expect(res.body.details.app.status).toBe('down');
+        expect(res.body.statusCode).toBeUndefined();
       });
   });
 

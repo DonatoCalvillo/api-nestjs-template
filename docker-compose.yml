@@ -45,6 +45,7 @@ services:
       DB_HOST: db
     ports:
       - "${PORT:-3000}:3000"
+    stop_grace_period: 35s
     depends_on:
       - db
     networks:

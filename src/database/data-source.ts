@@ -11,7 +11,15 @@ export const dataSourceOptions: DataSourceOptions = {
   entities: ['dist/**/*.entity.js'],
   migrationsTableName: 'migrations',
   migrations: ['dist/database/migrations/*.js'],
-  logging: ENVIRONMENT_VARIABLES.NODE_ENV === 'development',
+  synchronize: false,
+  migrationsRun: ENVIRONMENT_VARIABLES.DB_MIGRATIONS_RUN,
+  logging:
+    ENVIRONMENT_VARIABLES.NODE_ENV === 'development' ? true : ['error', 'warn'],
+  ssl: ENVIRONMENT_VARIABLES.DB_SSL ? { rejectUnauthorized: true } : false,
+  extra: {
+    max: ENVIRONMENT_VARIABLES.DB_POOL_MAX,
+    idleTimeoutMillis: ENVIRONMENT_VARIABLES.DB_POOL_IDLE_TIMEOUT_MS,
+  },
 };
 
 export default new DataSource(dataSourceOptions);

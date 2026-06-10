@@ -12,11 +12,13 @@ import {
 } from '../../application/outbox/outbox.constants';
 import { IMessageBrokerPublisher } from '../../application/outbox/ports/message-broker.publisher.port';
 import { IOutboxRepository } from '../../application/outbox/ports/outbox.repository.port';
+import { ShutdownStateService } from '../../../../configuration/shutdown/shutdown-state.service';
 import { OUTBOX_RELAY_LOCK_KEY } from '../locking/locking.constants';
 
 @Injectable()
 export class OutboxRelayService {
   private readonly logger = new Logger(OutboxRelayService.name);
+  private isProcessing = false;
 
   constructor(
     @Inject(OUTBOX_REPOSITORY)
@@ -25,7 +27,21 @@ export class OutboxRelayService {
     private readonly messageBrokerPublisher: IMessageBrokerPublisher,
     @Inject(DISTRIBUTED_LOCK)
     private readonly distributedLock: IDistributedLock,
+    private readonly shutdownState: ShutdownStateService,
   ) {}
+
+  async waitForIdle(maxWaitMs: number): Promise<void> {
+    const pollIntervalMs = 50;
+    const start = Date.now();
+
+    while (this.isProcessing) {
+      if (Date.now() - start >= maxWaitMs) {
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+  }
 
   @Cron(ENVIRONMENT_VARIABLES.OUTBOX_RELAY_CRON)
   async processPending(): Promise<void> {
@@ -33,15 +49,41 @@ export class OutboxRelayService {
       return;
     }
 
-    const acquired = await this.distributedLock.tryAcquire(
-      OUTBOX_RELAY_LOCK_KEY,
-      ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK_TTL_SECONDS,
-    );
-
-    if (!acquired) {
+    if (this.shutdownState.isShuttingDown) {
       return;
     }
 
+    this.isProcessing = true;
+    let acquired = false;
+
+    try {
+      acquired = await this.distributedLock.tryAcquire(
+        OUTBOX_RELAY_LOCK_KEY,
+        ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK_TTL_SECONDS,
+      );
+
+      if (!acquired) {
+        return;
+      }
+
+      await this.processBatch();
+    } catch (error) {
+      this.logger.error(
+        {
+          err: error instanceof Error ? error : new Error(String(error)),
+        },
+        'Outbox relay batch failed',
+      );
+    } finally {
+      if (acquired) {
+        await this.distributedLock.release(OUTBOX_RELAY_LOCK_KEY);
+      }
+
+      this.isProcessing = false;
+    }
+  }
+
+  private async processBatch(): Promise<void> {
     try {
       const batch = await this.outboxRepository.claimPendingBatch(
         ENVIRONMENT_VARIABLES.OUTBOX_RELAY_BATCH_SIZE,
@@ -109,8 +151,6 @@ export class OutboxRelayService {
         },
         'Outbox relay batch failed',
       );
-    } finally {
-      await this.distributedLock.release(OUTBOX_RELAY_LOCK_KEY);
     }
   }
 }

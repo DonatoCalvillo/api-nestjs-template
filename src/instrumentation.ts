@@ -8,8 +8,17 @@ import { getTracingConfig } from './configuration/tracing';
 
 const config = getTracingConfig();
 
+let sdk: NodeSDK | null = null;
+
+export const shutdownTracing = async (): Promise<void> => {
+  if (sdk) {
+    await sdk.shutdown();
+    sdk = null;
+  }
+};
+
 if (config.enabled) {
-  const sdk = new NodeSDK({
+  sdk = new NodeSDK({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: config.serviceName,
     }),
@@ -27,8 +36,4 @@ if (config.enabled) {
   });
 
   sdk.start();
-
-  process.on('SIGTERM', () => {
-    sdk.shutdown().catch(console.error);
-  });
 }

@@ -5,6 +5,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResilienceModule } from 'nestjs-resilience';
 import { ENVIRONMENT_VARIABLES } from '../../configuration/environments-variables';
+import { ShutdownService } from '../../configuration/shutdown';
+import { ShutdownStateModule } from '../../configuration/shutdown/shutdown-state.module';
 import { DISTRIBUTED_LOCK } from './application/locking/ports/distributed-lock.port';
 import {
   AUDIT_LOG_REPOSITORY,
@@ -55,6 +57,7 @@ import { TraceContextService } from './infrastructure/tracing';
 @Global()
 @Module({
   imports: [
+    ShutdownStateModule,
     EventEmitterModule.forRoot({ wildcard: false, delimiter: '.' }),
     ScheduleModule.forRoot(),
     HttpModule.register({
@@ -68,6 +71,7 @@ import { TraceContextService } from './infrastructure/tracing';
     ]),
   ],
   providers: [
+    ShutdownService,
     {
       provide: TRANSACTION_MANAGER,
       useClass: TypeOrmTransactionManager,

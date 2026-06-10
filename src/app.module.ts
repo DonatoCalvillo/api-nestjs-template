@@ -23,7 +23,10 @@ import { loggerOptions } from './configuration/logger';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
 import { buildThrottlerModuleOptions } from './configuration/throttler.config';
 import { HttpExceptionFilter } from './modules/shared/infrastructure/filters/http-exception.filter';
-import { TransformResponseInterceptor } from './modules/shared/infrastructure/interceptors';
+import {
+  RequestTimeoutInterceptor,
+  TransformResponseInterceptor,
+} from './modules/shared/infrastructure/interceptors';
 import { IdempotencyInterceptor } from './modules/shared/infrastructure/idempotency';
 import { TracingInterceptor } from './modules/shared/infrastructure/tracing';
 import { MetricsModule } from './modules/shared/infrastructure/metrics';
@@ -73,6 +76,10 @@ import {
     {
       provide: APP_INTERCEPTOR,
       useClass: TracingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestTimeoutInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

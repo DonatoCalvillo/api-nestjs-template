@@ -5,6 +5,8 @@ import {
   RequestWithTrace,
   TRACE_ID_HEADER,
 } from '../modules/shared/infrastructure/tracing/trace-context.constants';
+import { ENVIRONMENT_VARIABLES } from './environments-variables';
+
 type RequestWithContext = IncomingMessage &
   Record<string, string> &
   RequestWithTrace;
@@ -36,15 +38,21 @@ const getTraceFields = (req: RequestWithContext) => {
   return {};
 };
 
+const isProduction = ENVIRONMENT_VARIABLES.NODE_ENV === 'production';
+
 export const loggerOptions = {
   pinoHttp: {
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        messageKey: 'message',
-        colorize: true,
-      },
-    },
+    ...(isProduction
+      ? { level: ENVIRONMENT_VARIABLES.LOG_LEVEL }
+      : {
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              messageKey: 'message',
+              colorize: true,
+            },
+          },
+        }),
     messageKey: 'message',
     customProps(req: IncomingMessage) {
       const request = req as RequestWithContext;
