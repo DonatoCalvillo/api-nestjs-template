@@ -442,6 +442,26 @@ Copy the security block from `example.env` into your `.env` file.
 
 **Health check:** `GET /healthy` runs active Terminus checks (PostgreSQL, disk storage, and OTLP collector when tracing is enabled). Returns JSON with `status: "ok"` (HTTP 200) or `status: "error"` (HTTP 503). Exempt from rate limiting and IP filtering for orchestrator and load balancer probes.
 
+## 📋 Audit log
+
+Command use cases that mutate data can opt in to automatic audit logging with the `@AuditLog()` decorator. Each entry records who performed the action, when it happened, and what changed (before state, after state, and a field-level diff).
+
+```typescript
+@Injectable()
+@AuditLog({
+  action: 'user.update',
+  entityType: 'User',
+  entityId: (cmd) => cmd.id,
+  getBeforeState: async (cmd, { useCase, trx }) =>
+    (useCase as UpdateUserUseCase).findByIdForAudit(cmd.id, trx),
+})
+export class UpdateUserUseCase extends CommandUseCase<UpdateUserCommand, UserModel> {
+  // ...
+}
+```
+
+Run the migration with `pnpm migration:run`. Full guide with create/update/delete examples, actor context, and querying logs: **[docs/audit-log.md](docs/audit-log.md)**.
+
 ## 🛡️ HTTP Resilience
 
 Cuando tu API consume microservicios o APIs de terceros, una caída externa no debe tumbar tu backend. El template incluye una capa de resiliencia basada en [`nestjs-resilience`](https://www.npmjs.com/package/nestjs-resilience) (retry, timeout, circuit breaker) y `@nestjs/axios`.
@@ -572,19 +592,24 @@ npm run build
 
 ## 💾 Migrations
 
-To generate a migration
+To generate a migration (PostgreSQL must be running and `.env` configured)
 ```bash
-npm run migration:generate -- ./src/database/migrations/{migration-name}
+pnpm migration:generate src/database/migrations/AuditLog
+```
+
+Or with npm:
+```bash
+npm run migration:generate -- src/database/migrations/AuditLog
 ```
 
 To run migrations
 ```bash
-npm run migration:run
+pnpm migration:run
 ```
 
-To revert migrations
+To revert the last migration
 ```bash
-npm run migration:revert -- ./src/database/migrations/{migration-name}
+pnpm migration:revert
 ```
 
 ## 📋 Testing

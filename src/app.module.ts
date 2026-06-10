@@ -7,6 +7,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { dataSourceOptions } from './database/data-source';
 import { LoggerModule } from 'nestjs-pino';
 
+import { RequestContextMiddleware } from './modules/shared/infrastructure/audit/request-context.middleware';
 import { RequestIdMiddleware } from './modules/shared/infrastructure/middlewares/request-id.middleware';
 import { IpAllowlistMiddleware } from './modules/shared/infrastructure/middlewares/ip-allowlist.middleware';
 import { ConditionalThrottlerGuard } from './modules/shared/infrastructure/guards/conditional-throttler.guard';
@@ -38,6 +39,7 @@ import { MetricsModule } from './modules/shared/infrastructure/metrics';
   ],
   controllers: [],
   providers: [
+    RequestContextMiddleware,
     {
       provide: APP_GUARD,
       useClass: ConditionalThrottlerGuard,
@@ -54,6 +56,12 @@ import { MetricsModule } from './modules/shared/infrastructure/metrics';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(IpAllowlistMiddleware, RequestIdMiddleware).forRoutes('*');
+    consumer
+      .apply(
+        IpAllowlistMiddleware,
+        RequestIdMiddleware,
+        RequestContextMiddleware,
+      )
+      .forRoutes('*');
   }
 }

@@ -14,5 +14,4 @@ export const dataSourceOptions: DataSourceOptions = {
   logging: ENVIRONMENT_VARIABLES.NODE_ENV === 'development',
 };
 
-export const dataSource: DataSource = new DataSource(dataSourceOptions);
-export default dataSource;
+export default new DataSource(dataSourceOptions);

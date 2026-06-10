@@ -20,10 +20,11 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prepare": "husky",
-    "typeorm": "pnpm run build && npx typeorm -d dist/database/data-source.js",
-    "migration:generate": "pnpm run typeorm -- migration:generate",
-    "migration:run": "pnpm run typeorm -- migration:run",
-    "migration:revert": "pnpm run typeorm -- migration:revert",
+    "typeorm": "pnpm run build && npx typeorm",
+    "migration:generate": "pnpm run typeorm migration:generate -d dist/database/data-source.js",
+    "migration:run": "pnpm run typeorm migration:run -d dist/database/data-source.js",
+    "migration:revert": "pnpm run typeorm migration:revert -d dist/database/data-source.js",
+    "migration:show": "pnpm run typeorm migration:show -d dist/database/data-source.js",
     "deps:check-age": "node scripts/find-safe-versions.mjs 7"
   },
   "dependencies": {

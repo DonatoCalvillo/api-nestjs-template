@@ -1,6 +1,9 @@
+import { Inject, Optional } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { QueryRunner } from 'typeorm';
 import { DomainError } from '../../domain/errors/error';
+import { AUDIT_LOG_SERVICE } from '../audit/audit-log.constants';
+import { AuditLogService } from '../audit/audit-log.service';
 import { ITransactionManager } from '../ports/transaction-manager.port';
 import { BaseUseCase } from './base.use-case';
 import { Result } from './result';
@@ -10,6 +13,10 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
   TCommand,
   Result<TResult>
 > {
+  @Optional()
+  @Inject(AUDIT_LOG_SERVICE)
+  protected auditLogService?: AuditLogService;
+
   constructor(
     logger: PinoLogger,
     protected readonly transactionManager?: ITransactionManager,
@@ -37,7 +44,14 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
   ): Promise<Result<TResult>> {
     try {
       await this.validate(command);
-      const result = await this.executeCommand(command, context?.trx);
+
+      const runCommand = () => this.executeCommand(command, context?.trx);
+
+      const result =
+        this.auditLogService?.hasAuditLog(this) === true
+          ? await this.auditLogService.wrap(this, command, context, runCommand)
+          : await runCommand();
+
       return Result.ok(result);
     } catch (error) {
       if (error instanceof DomainError) {
