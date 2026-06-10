@@ -8,7 +8,6 @@ test
 docs
 .env
 .env.*
-!.env.example
 example.env
 postgres-data
 posgres-data

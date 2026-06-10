@@ -38,7 +38,7 @@
       - any-glob-to-any-file:
           - .dockerignore
           - .editorconfig
-          - .env.example
+          - example.env
           - .eslintignore
           - .eslintrc
           - .gitignore
