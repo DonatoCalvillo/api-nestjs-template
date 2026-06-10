@@ -462,6 +462,41 @@ export class UpdateUserUseCase extends CommandUseCase<UpdateUserCommand, UserMod
 
 Run the migration with `pnpm migration:run`. Full guide with create/update/delete examples, actor context, and querying logs: **[docs/audit-log.md](docs/audit-log.md)**.
 
+## 📣 Domain events
+
+Aggregates that extend `AggregateRoot` can register domain events when their state changes. `CommandUseCase` collects those events from the command result and publishes them asynchronously (in-process) after the database transaction commits.
+
+```typescript
+export class UserCreatedEvent implements IDomainEvent {
+  static readonly eventName = 'user.created';
+  readonly eventName = UserCreatedEvent.eventName;
+  readonly occurredAt = new Date();
+  constructor(readonly userId: string, readonly email: string) {}
+}
+
+export class UserModel extends AggregateRoot<UserProps> {
+  static create(params: { id: string; name: string; email: string }): UserModel {
+    const user = new UserModel({ id: params.id, props: { /* value objects */ } });
+    user.addDomainEvent(new UserCreatedEvent(user.id, params.email));
+    return user;
+  }
+}
+```
+
+Handlers in other modules subscribe with `@OnEvent()`:
+
+```typescript
+@Injectable()
+export class SendWelcomeEmailOnUserCreatedHandler {
+  @OnEvent(UserCreatedEvent.eventName)
+  async handle(envelope: DomainEventEnvelope<UserCreatedEvent>): Promise<void> {
+    // side effect: email, cache, projection, etc.
+  }
+}
+```
+
+`EventEmitterModule` and the dispatcher are wired globally in `SharedModule`. Full guide: **[docs/domain-events.md](docs/domain-events.md)**.
+
 ## 🛡️ HTTP Resilience
 
 Cuando tu API consume microservicios o APIs de terceros, una caída externa no debe tumbar tu backend. El template incluye una capa de resiliencia basada en [`nestjs-resilience`](https://www.npmjs.com/package/nestjs-resilience) (retry, timeout, circuit breaker) y `@nestjs/axios`.

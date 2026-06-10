@@ -1,4 +1,5 @@
 export * from './audit';
+export * from './events';
 export * from './mappers';
 export * from './use-cases';
 export {

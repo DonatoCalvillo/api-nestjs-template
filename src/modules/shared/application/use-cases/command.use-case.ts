@@ -4,6 +4,11 @@ import { QueryRunner } from 'typeorm';
 import { DomainError } from '../../domain/errors/error';
 import { AUDIT_LOG_SERVICE } from '../audit/audit-log.constants';
 import { AuditLogService } from '../audit/audit-log.service';
+import {
+  DOMAIN_EVENT_DISPATCHER,
+  DomainEventStagingService,
+  IDomainEventDispatcher,
+} from '../events';
 import { ITransactionManager } from '../ports/transaction-manager.port';
 import { BaseUseCase } from './base.use-case';
 import { Result } from './result';
@@ -17,6 +22,13 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
   @Inject(AUDIT_LOG_SERVICE)
   protected auditLogService?: AuditLogService;
 
+  @Optional()
+  protected domainEventStaging?: DomainEventStagingService;
+
+  @Optional()
+  @Inject(DOMAIN_EVENT_DISPATCHER)
+  protected domainEventDispatcher?: IDomainEventDispatcher;
+
   constructor(
     logger: PinoLogger,
     protected readonly transactionManager?: ITransactionManager,
@@ -26,12 +38,16 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
 
   async execute(command: TCommand): Promise<Result<TResult>> {
     if (this.transactionManager && this.requiresTransaction()) {
-      return this.transactionManager.run((trx) =>
+      const result = await this.transactionManager.run((trx) =>
         super.execute(command, { trx }),
       );
+      this.flushDomainEvents();
+      return result;
     }
 
-    return super.execute(command);
+    const result = await super.execute(command);
+    this.flushDomainEvents();
+    return result;
   }
 
   protected requiresTransaction(): boolean {
@@ -52,6 +68,8 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
           ? await this.auditLogService.wrap(this, command, context, runCommand)
           : await runCommand();
 
+      this.domainEventStaging?.stageFrom(result);
+
       return Result.ok(result);
     } catch (error) {
       if (error instanceof DomainError) {
@@ -66,4 +84,22 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
     command: TCommand,
     trx?: QueryRunner,
   ): Promise<TResult>;
+
+  private flushDomainEvents(): void {
+    const events = this.domainEventStaging?.drain() ?? [];
+
+    if (events.length === 0 || !this.domainEventDispatcher) {
+      return;
+    }
+
+    void this.domainEventDispatcher.dispatch(events).catch((error) => {
+      this.logger.error(
+        {
+          err: error instanceof Error ? error : new Error(String(error)),
+          eventCount: events.length,
+        },
+        'Failed to dispatch domain events',
+      );
+    });
+  }
 }
