@@ -38,8 +38,8 @@ describe('TracingInterceptor', () => {
     ({
       switchToHttp: () => ({
         getRequest: () => ({
-          url: '/healthy',
-          route: { path: '/healthy' },
+          url: '/health/live',
+          route: { path: '/health/live' },
         }),
         getResponse: () => ({
           setHeader,

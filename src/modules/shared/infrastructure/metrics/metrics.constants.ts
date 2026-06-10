@@ -7,4 +7,11 @@ export const HTTP_DURATION_BUCKETS = [
 ];
 
 export const METRICS_PATH = '/metrics';
-export const HEALTH_PATH = '/healthy';
+export const HEALTH_PATH = '/health';
+export const HEALTH_LIVE_PATH = '/health/live';
+export const HEALTH_READY_PATH = '/health/ready';
+
+export const isHealthProbePath = (path: string): boolean =>
+  path === HEALTH_PATH ||
+  path === HEALTH_LIVE_PATH ||
+  path === HEALTH_READY_PATH;

@@ -1,13 +1,13 @@
 import { ENVIRONMENT_VARIABLES } from '../../../../configuration/environments-variables';
 import {
-  HEALTH_PATH,
+  isHealthProbePath,
   METRICS_PATH,
 } from '../../../shared/infrastructure/metrics/metrics.constants';
 
 const SWAGGER_PATH_PREFIXES = ['/api/docs', '/api/docs-json'];
 
 export const isPublicPath = (method: string, path: string): boolean => {
-  if (method === 'GET' && (path === HEALTH_PATH || path === METRICS_PATH)) {
+  if (method === 'GET' && (isHealthProbePath(path) || path === METRICS_PATH)) {
     return true;
   }
 

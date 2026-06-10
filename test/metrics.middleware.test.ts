@@ -124,10 +124,10 @@ describe('MetricsMiddleware', () => {
     expect(errorsTotal.inc).not.toHaveBeenCalled();
   });
 
-  it('skips metrics collection for GET /healthy', () => {
+  it('skips metrics collection for GET /health/live', () => {
     const req: Partial<Request> = {
       method: 'GET',
-      path: '/healthy',
+      path: '/health/live',
     };
     const res = createResponse(204);
     const next = jest.fn();

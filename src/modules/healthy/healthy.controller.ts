@@ -15,7 +15,7 @@ import { Public } from '../auth/infrastructure/decorators/public.decorator';
 
 @Public()
 @SkipThrottle()
-@Controller('healthy')
+@Controller('health')
 export class HealthyController {
   constructor(
     private readonly logger: PinoLogger,
@@ -27,13 +27,27 @@ export class HealthyController {
     this.logger.setContext(HealthyController.name);
   }
 
+  @Get('live')
+  live() {
+    return { status: 'ok' };
+  }
+
+  @Get('ready')
+  @HealthCheck()
+  ready(@Req() req: Request) {
+    this.logger.info(`Readiness check request coming from: ${req.ip}`);
+
+    return this.health.check([
+      () => this.db.pingCheck('database', { timeout: 3000 }),
+    ]);
+  }
+
   @Get()
   @HealthCheck()
-  check(@Req() req: Request) {
-    this.logger.info(`Healthy check request coming from: ${req.ip}`);
+  deep(@Req() req: Request) {
+    this.logger.info(`Deep health check request coming from: ${req.ip}`);
 
     const checks: HealthIndicatorFunction[] = [
-      () => this.db.pingCheck('database', { timeout: 3000 }),
       () =>
         this.disk.checkStorage('storage', {
           path: ENVIRONMENT_VARIABLES.HEALTH_DISK_PATH,
@@ -41,16 +55,24 @@ export class HealthyController {
         }),
     ];
 
-    if (ENVIRONMENT_VARIABLES.OTEL_TRACES_ENABLED) {
-      const otlpOrigin = new URL(
-        ENVIRONMENT_VARIABLES.OTEL_EXPORTER_OTLP_ENDPOINT,
-      ).origin;
-
-      checks.push(() =>
-        this.http.responseCheck('otlp', otlpOrigin, (res) => res.status < 500),
-      );
+    const otlpCheck = this.buildOtlpCheck();
+    if (otlpCheck) {
+      checks.push(otlpCheck);
     }
 
     return this.health.check(checks);
+  }
+
+  private buildOtlpCheck(): HealthIndicatorFunction | null {
+    if (!ENVIRONMENT_VARIABLES.OTEL_TRACES_ENABLED) {
+      return null;
+    }
+
+    const otlpOrigin = new URL(
+      ENVIRONMENT_VARIABLES.OTEL_EXPORTER_OTLP_ENDPOINT,
+    ).origin;
+
+    return () =>
+      this.http.responseCheck('otlp', otlpOrigin, (res) => res.status < 500);
   }
 }

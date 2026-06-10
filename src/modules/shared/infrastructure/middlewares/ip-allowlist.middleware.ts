@@ -2,6 +2,7 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { ENVIRONMENT_VARIABLES } from '../../../../configuration/environments-variables';
 import { ForbiddenError } from '../../domain/errors/forbidden.error';
+import { isHealthProbePath, METRICS_PATH } from '../metrics/metrics.constants';
 
 @Injectable()
 export class IpAllowlistMiddleware implements NestMiddleware {
@@ -13,7 +14,7 @@ export class IpAllowlistMiddleware implements NestMiddleware {
 
     if (
       req.method === 'GET' &&
-      (req.path === '/healthy' || req.path === '/metrics')
+      (isHealthProbePath(req.path) || req.path === METRICS_PATH)
     ) {
       next();
       return;

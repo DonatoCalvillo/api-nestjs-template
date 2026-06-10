@@ -440,13 +440,21 @@ Copy the security block from `example.env` into your `.env` file.
 
 **IP filtering:** Allowlist mode — only listed IPs can access the API when `IP_FILTER_ENABLED=true`. Set `TRUST_PROXY=true` when running behind a reverse proxy or load balancer.
 
-**Health check:** `GET /healthy` runs active Terminus checks (PostgreSQL, disk storage, and OTLP collector when tracing is enabled). Returns JSON with `status: "ok"` (HTTP 200) or `status: "error"` (HTTP 503). Exempt from rate limiting and IP filtering for orchestrator and load balancer probes.
+**Health checks:** Three probe endpoints for orchestrators (Kubernetes, ECS):
+
+| Endpoint | Purpose | Checks |
+|----------|---------|--------|
+| `GET /health/live` | Liveness | None — always HTTP 200 if the process responds |
+| `GET /health/ready` | Readiness | PostgreSQL ping |
+| `GET /health` | Deep / monitoring | Disk storage and OTLP collector (when tracing is enabled) |
+
+Readiness and deep checks return Terminus JSON with `status: "ok"` (HTTP 200) or `status: "error"` (HTTP 503). All health routes are exempt from rate limiting and IP filtering.
 
 ## API responses
 
 Success and error responses use a unified `ResponseDto` envelope (`success`, `message`, `data`, `code`, `meta`). Controllers return plain DTOs; `TransformResponseInterceptor` wraps them automatically. Domain errors map to typed HTTP statuses with stable error codes.
 
-See [docs/api-responses.md](docs/api-responses.md) for the full contract, validation error shape, and excluded routes (`/healthy`, `/metrics`, Swagger).
+See [docs/api-responses.md](docs/api-responses.md) for the full contract, validation error shape, and excluded routes (`/health`, `/health/live`, `/health/ready`, `/metrics`, Swagger).
 
 ## 📋 Audit log
 

@@ -86,7 +86,7 @@ describe('TransformResponseInterceptor', () => {
 
     const result = await lastValueFrom(
       interceptor.intercept(
-        createExecutionContext('/healthy'),
+        createExecutionContext('/health/ready'),
         createCallHandler(healthBody),
       ),
     );

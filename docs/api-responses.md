@@ -62,7 +62,9 @@ Validation errors include structured details in `data`:
 
 These routes do not use the success envelope:
 
-- `GET /healthy` — Terminus health check format
+- `GET /health/live` — liveness probe (`{ status: "ok" }`)
+- `GET /health/ready` — readiness probe (Terminus format, database check)
+- `GET /health` — deep health check (Terminus format, disk and OTLP)
 - `GET /metrics` — Prometheus text format
 - `/api/docs` — Swagger UI
 

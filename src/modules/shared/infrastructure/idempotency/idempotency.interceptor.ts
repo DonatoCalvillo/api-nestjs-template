@@ -22,11 +22,12 @@ import {
   SKIP_IDEMPOTENCY_KEY,
 } from '../../application/idempotency/idempotency.constants';
 import { IIdempotencyRepository } from '../../application/idempotency/ports/idempotency.repository.port';
-import { HEALTH_PATH, METRICS_PATH } from '../metrics/metrics.constants';
+import { isHealthProbePath, METRICS_PATH } from '../metrics/metrics.constants';
 import { resolveIdempotencyScope } from './idempotency-scope.util';
 import { buildRequestHash } from './request-hash.util';
 
-const EXCLUDED_PATHS = new Set([HEALTH_PATH, METRICS_PATH]);
+const isExcludedPath = (path: string): boolean =>
+  isHealthProbePath(path) || path === METRICS_PATH;
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -72,7 +73,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     const requestPath = request.path ?? request.url.split('?')[0];
 
-    if (EXCLUDED_PATHS.has(requestPath)) {
+    if (isExcludedPath(requestPath)) {
       return next.handle();
     }
 

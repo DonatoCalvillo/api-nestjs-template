@@ -126,7 +126,7 @@ handleWebhook() {
 }
 ```
 
-Rutas excluidas globalmente: `/healthy`, `/metrics`.
+Rutas excluidas globalmente: `/health`, `/health/live`, `/health/ready`, `/metrics`.
 
 ## Relación con el outbox (mensajería)
 

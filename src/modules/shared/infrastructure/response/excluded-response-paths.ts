@@ -1,9 +1,9 @@
-import { HEALTH_PATH, METRICS_PATH } from '../metrics/metrics.constants';
+import { isHealthProbePath, METRICS_PATH } from '../metrics/metrics.constants';
 
 const SWAGGER_PATH_PREFIX = '/api/docs';
 
 export const isExcludedResponsePath = (path: string): boolean => {
-  if (path === HEALTH_PATH || path === METRICS_PATH) {
+  if (isHealthProbePath(path) || path === METRICS_PATH) {
     return true;
   }
 

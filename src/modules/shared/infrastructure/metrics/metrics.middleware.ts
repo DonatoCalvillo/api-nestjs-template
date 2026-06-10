@@ -3,10 +3,10 @@ import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { NextFunction, Request, Response } from 'express';
 import { Counter, Histogram } from 'prom-client';
 import {
-  HEALTH_PATH,
   HTTP_ERRORS_TOTAL,
   HTTP_REQUEST_DURATION_SECONDS,
   HTTP_REQUESTS_TOTAL,
+  isHealthProbePath,
   METRICS_PATH,
 } from './metrics.constants';
 
@@ -61,7 +61,7 @@ export class MetricsMiddleware implements NestMiddleware {
       return true;
     }
 
-    if (req.method === 'GET' && req.path === HEALTH_PATH) {
+    if (req.method === 'GET' && isHealthProbePath(req.path)) {
       return true;
     }
 

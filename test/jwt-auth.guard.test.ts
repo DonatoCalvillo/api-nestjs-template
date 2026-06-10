@@ -44,7 +44,9 @@ describe('JwtAuthGuard', () => {
   it('allows health probe paths without metadata', () => {
     reflector.getAllAndOverride.mockReturnValue(undefined);
 
-    expect(guard.canActivate(createContext('/healthy', 'GET'))).toBe(true);
+    expect(guard.canActivate(createContext('/health/live', 'GET'))).toBe(true);
+    expect(guard.canActivate(createContext('/health/ready', 'GET'))).toBe(true);
+    expect(guard.canActivate(createContext('/health', 'GET'))).toBe(true);
   });
 
   it('sets actor when user is authenticated', () => {

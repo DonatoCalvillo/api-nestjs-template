@@ -73,6 +73,8 @@ const createTestingApp = async (
 
   return {
     app,
+    typeOrmIndicator: moduleFixture.get(TypeOrmHealthIndicator),
+    diskIndicator: moduleFixture.get(DiskHealthIndicator),
     httpIndicator: moduleFixture.get(HttpHealthIndicator),
   };
 };
@@ -84,20 +86,31 @@ describe('HealthyController (e2e)', () => {
     await app?.close();
   });
 
-  it('/healthy (GET) returns 200 with ok status when all checks pass', async () => {
+  it('/health/live (GET) always returns 200', async () => {
     ({ app } = await createTestingApp());
 
     return request(app.getHttpServer())
-      .get('/healthy')
+      .get('/health/live')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual({ status: 'ok' });
+      });
+  });
+
+  it('/health/ready (GET) returns 200 when database is up', async () => {
+    ({ app } = await createTestingApp());
+
+    return request(app.getHttpServer())
+      .get('/health/ready')
       .expect(200)
       .expect((res) => {
         expect(res.body.status).toBe('ok');
         expect(res.body.details.database.status).toBe('up');
-        expect(res.body.details.storage.status).toBe('up');
+        expect(res.body.details.storage).toBeUndefined();
       });
   });
 
-  it('/healthy (GET) returns 503 when a check fails', async () => {
+  it('/health/ready (GET) returns 503 when database check fails', async () => {
     ({ app } = await createTestingApp({
       typeOrm: {
         pingCheck: jest.fn().mockRejectedValue(
@@ -109,14 +122,47 @@ describe('HealthyController (e2e)', () => {
     }));
 
     return request(app.getHttpServer())
-      .get('/healthy')
+      .get('/health/ready')
       .expect(503)
       .expect((res) => {
         expect(res.body.status).toBe('error');
         expect(res.body.error.database.status).toBe('down');
         expect(res.body.details.database.status).toBe('down');
-        expect(res.body.details.storage.status).toBe('up');
         expect(res.body.statusCode).toBeUndefined();
+      });
+  });
+
+  it('/health (GET) returns 200 with storage when deep checks pass', async () => {
+    ({ app } = await createTestingApp());
+
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.status).toBe('ok');
+        expect(res.body.details.storage.status).toBe('up');
+        expect(res.body.details.database).toBeUndefined();
+      });
+  });
+
+  it('/health (GET) returns 503 when disk check fails', async () => {
+    ({ app } = await createTestingApp({
+      disk: {
+        checkStorage: jest.fn().mockRejectedValue(
+          new HealthCheckError('Disk check failed', {
+            storage: { status: 'down', message: 'Threshold exceeded' },
+          }),
+        ),
+      },
+    }));
+
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(503)
+      .expect((res) => {
+        expect(res.body.status).toBe('error');
+        expect(res.body.error.storage.status).toBe('down');
+        expect(res.body.details.storage.status).toBe('down');
       });
   });
 });
@@ -124,6 +170,7 @@ describe('HealthyController (e2e)', () => {
 describe('HealthyController OTLP check', () => {
   let app: INestApplication;
   let httpIndicator: HttpHealthIndicator;
+  let typeOrmIndicator: TypeOrmHealthIndicator;
   const originalOtelEnabled = ENVIRONMENT_VARIABLES.OTEL_TRACES_ENABLED;
 
   afterEach(async () => {
@@ -131,13 +178,13 @@ describe('HealthyController OTLP check', () => {
     await app?.close();
   });
 
-  it('includes otlp in details when OTEL_TRACES_ENABLED is true', async () => {
+  it('includes otlp in /health details when OTEL_TRACES_ENABLED is true', async () => {
     ENVIRONMENT_VARIABLES.OTEL_TRACES_ENABLED = true;
 
     ({ app, httpIndicator } = await createTestingApp());
 
     await request(app.getHttpServer())
-      .get('/healthy')
+      .get('/health')
       .expect(200)
       .expect((res) => {
         expect(res.body.details.otlp.status).toBe('up');
@@ -150,18 +197,47 @@ describe('HealthyController OTLP check', () => {
     );
   });
 
-  it('skips otlp check when OTEL_TRACES_ENABLED is false', async () => {
+  it('skips otlp check on /health when OTEL_TRACES_ENABLED is false', async () => {
     ENVIRONMENT_VARIABLES.OTEL_TRACES_ENABLED = false;
 
     ({ app, httpIndicator } = await createTestingApp());
 
     await request(app.getHttpServer())
-      .get('/healthy')
+      .get('/health')
       .expect(200)
       .expect((res) => {
         expect(res.body.details.otlp).toBeUndefined();
       });
 
     expect(httpIndicator.responseCheck).not.toHaveBeenCalled();
+  });
+
+  it('does not include otlp in /health/ready when OTEL fails on /health', async () => {
+    ENVIRONMENT_VARIABLES.OTEL_TRACES_ENABLED = true;
+
+    ({ app, httpIndicator, typeOrmIndicator } = await createTestingApp({
+      http: {
+        responseCheck: jest.fn().mockRejectedValue(
+          new HealthCheckError('OTLP check failed', {
+            otlp: { status: 'down', message: 'Connection refused' },
+          }),
+        ),
+      },
+    }));
+
+    await request(app.getHttpServer()).get('/health').expect(503);
+
+    expect(httpIndicator.responseCheck).toHaveBeenCalled();
+
+    await request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.status).toBe('ok');
+        expect(res.body.details.database.status).toBe('up');
+        expect(res.body.details.otlp).toBeUndefined();
+      });
+
+    expect(typeOrmIndicator.pingCheck).toHaveBeenCalled();
   });
 });

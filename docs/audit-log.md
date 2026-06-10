@@ -181,7 +181,7 @@ this.actorContext.setActor({
 });
 ```
 
-Public routes (`@Public()`, `/healthy`, `/metrics`) skip authentication and keep the anonymous actor.
+Public routes (`@Public()`, `/health`, `/health/live`, `/health/ready`, `/metrics`) skip authentication and keep the anonymous actor.
 
 Reference implementation in `src/modules/auth/infrastructure/guards/jwt-auth.guard.ts`. When extending auth, set the actor from a guard:
 

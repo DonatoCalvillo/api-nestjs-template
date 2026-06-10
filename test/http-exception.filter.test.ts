@@ -117,7 +117,7 @@ describe('HttpExceptionFilter', () => {
     );
   });
 
-  it('keeps Terminus health check body on /healthy', () => {
+  it('keeps Terminus health check body on /health/ready', () => {
     const terminusBody = {
       status: 'error',
       error: { database: { status: 'down' } },
@@ -126,7 +126,7 @@ describe('HttpExceptionFilter', () => {
 
     filter.catch(
       new HttpException(terminusBody, HttpStatus.SERVICE_UNAVAILABLE),
-      createHost('/healthy'),
+      createHost('/health/ready'),
     );
 
     expect(status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);

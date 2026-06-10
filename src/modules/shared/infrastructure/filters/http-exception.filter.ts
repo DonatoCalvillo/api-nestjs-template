@@ -10,7 +10,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { ErrorCodes } from '../../domain/enum/error-codes';
 import { DomainError } from '../../domain/errors/error';
 import { ResponseDto } from '../../domain/response/response';
-import { HEALTH_PATH } from '../metrics/metrics.constants';
+import { isHealthProbePath } from '../metrics/metrics.constants';
 import { inferErrorCodeFromStatus } from '../response/http-status-code.util';
 import { buildResponseMeta } from '../response/response-meta.util';
 import { setResponseTraceHeaders } from '../response/response-headers.util';
@@ -131,7 +131,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const requestPath = request.path ?? request.url.split('?')[0];
 
     if (
-      requestPath === HEALTH_PATH &&
+      isHealthProbePath(requestPath) &&
       exception instanceof HttpException &&
       isTerminusHealthCheckBody(exceptionResponse)
     ) {

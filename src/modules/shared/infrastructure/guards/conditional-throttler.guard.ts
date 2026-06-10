@@ -1,7 +1,7 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { ENVIRONMENT_VARIABLES } from '../../../../configuration/environments-variables';
-import { HEALTH_PATH, METRICS_PATH } from '../metrics/metrics.constants';
+import { isHealthProbePath, METRICS_PATH } from '../metrics/metrics.constants';
 
 @Injectable()
 export class ConditionalThrottlerGuard extends ThrottlerGuard {
@@ -16,7 +16,7 @@ export class ConditionalThrottlerGuard extends ThrottlerGuard {
 
     if (
       request.method === 'GET' &&
-      (request.path === HEALTH_PATH || request.path === METRICS_PATH)
+      (isHealthProbePath(request.path ?? '') || request.path === METRICS_PATH)
     ) {
       return true;
     }
