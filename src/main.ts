@@ -1,14 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
+import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
+import { getCorsOptions } from './configuration/cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useLogger(app.get(Logger));
 
-  app.enableCors();
+  if (ENVIRONMENT_VARIABLES.TRUST_PROXY) {
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  }
 
-  await app.listen(3000);
+  if (ENVIRONMENT_VARIABLES.CORS_ENABLED) {
+    app.enableCors(getCorsOptions());
+  }
+
+  await app.listen(ENVIRONMENT_VARIABLES.PORT);
 }
 bootstrap();

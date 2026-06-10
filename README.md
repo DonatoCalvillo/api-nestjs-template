@@ -383,6 +383,32 @@ Database → UserEntity → toModel() → UserModel → use case / domain logic
 Database ← UserEntity ← toPersistence() ← UserModel ← use case / domain logic
 ```
 
+## 🔒 Security
+
+The API supports CORS, rate limiting, and IP allowlist filtering. All settings are controlled via environment variables and validated at startup with Joi in `src/configuration/environments-variables.ts`.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CORS_ENABLED` | `true` | Enable CORS headers |
+| `CORS_ORIGINS` | `*` | Allowed origins, comma-separated. Use `*` to allow all |
+| `CORS_CREDENTIALS` | `false` | Send `Access-Control-Allow-Credentials`. Cannot be used with `CORS_ORIGINS=*` |
+| `THROTTLE_ENABLED` | `true` | Enable global rate limiting |
+| `THROTTLE_TTL` | `60` | Rate limit window in seconds |
+| `THROTTLE_LIMIT` | `100` | Max requests per IP within the window |
+| `IP_FILTER_ENABLED` | `false` | Enable IP allowlist filtering |
+| `IP_ALLOWLIST` | `127.0.0.1,::1` | Allowed IPs when filtering is enabled, comma-separated |
+| `TRUST_PROXY` | `false` | Enable Express `trust proxy` for correct `req.ip` behind nginx/ALB |
+
+Copy the security block from `example.env` into your `.env` file.
+
+**CORS:** Separate multiple origins with commas (e.g. `http://localhost:4200,https://app.example.com`). Use `*` only when `CORS_CREDENTIALS=false`.
+
+**Rate limiting:** Exceeded requests receive `429 Too Many Requests`. Disable with `THROTTLE_ENABLED=false`.
+
+**IP filtering:** Allowlist mode — only listed IPs can access the API when `IP_FILTER_ENABLED=true`. Set `TRUST_PROXY=true` when running behind a reverse proxy or load balancer.
+
+**Health check:** `GET /healthy` is exempt from rate limiting and IP filtering for probes from orchestrators and load balancers.
+
 ## 🧑‍💻 Developing
 
 First we need to download the repository
@@ -400,7 +426,7 @@ cd api-nestjs-template && npm install
 We need to set the environments variables
 
 ```bash
-cp .env.example .env
+cp example.env .env
 ```
 
 To run the project we have options

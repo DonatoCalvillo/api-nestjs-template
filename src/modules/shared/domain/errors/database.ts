@@ -4,8 +4,12 @@ import { DomainError } from './error';
 import { ErrorCodes } from '../enum/error-codes';
 
 export class DatabaseError extends DomainError {
-  constructor(cause: string) {
-    super(cause || 'There was a database error');
+  constructor(cause: unknown) {
+    super(
+      cause instanceof Error
+        ? cause.message
+        : 'There was a database error with unknown cause',
+    );
   }
 
   public toHttpException() {

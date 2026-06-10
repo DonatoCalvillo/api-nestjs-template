@@ -1,7 +1,9 @@
 import { Controller, Get, Req, Res } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 
+@SkipThrottle()
 @Controller('healthy')
 export class HealthyController {
   constructor(private readonly logger: PinoLogger) {
