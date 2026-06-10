@@ -7,13 +7,14 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
-import { REQUEST_ID_HEADER } from '../request-context';
+import { ErrorCodes } from '../../domain/enum/error-codes';
+import { DomainError } from '../../domain/errors/error';
+import { ResponseDto } from '../../domain/response/response';
 import { HEALTH_PATH } from '../metrics/metrics.constants';
-import {
-  RequestWithTrace,
-  TRACE_ID_HEADER,
-  TRACEPARENT_HEADER,
-} from '../tracing/trace-context.constants';
+import { inferErrorCodeFromStatus } from '../response/http-status-code.util';
+import { buildResponseMeta } from '../response/response-meta.util';
+import { setResponseTraceHeaders } from '../response/response-headers.util';
+import { RequestWithTrace } from '../tracing/trace-context.constants';
 import { TraceContextService } from '../tracing/trace-context.service';
 
 interface TerminusHealthCheckBody {
@@ -21,6 +22,13 @@ interface TerminusHealthCheckBody {
   info?: Record<string, unknown>;
   error?: Record<string, unknown>;
   details: Record<string, unknown>;
+}
+
+interface LegacyExceptionBody {
+  message?: string | string[];
+  success?: boolean;
+  code?: string;
+  data?: unknown;
 }
 
 const isTerminusHealthCheckBody = (
@@ -40,6 +48,58 @@ const isTerminusHealthCheckBody = (
   );
 };
 
+const normalizeMessage = (message: string | string[]): string =>
+  Array.isArray(message) ? message.join(', ') : message;
+
+const toResponseDto = (
+  exception: HttpException | unknown,
+  status: number,
+): ResponseDto => {
+  if (!(exception instanceof HttpException)) {
+    return ResponseDto.error(
+      'Internal server error',
+      ErrorCodes.UNEXPECTED_ERROR,
+    );
+  }
+
+  const exceptionResponse = exception.getResponse();
+
+  if (typeof exceptionResponse === 'string') {
+    return ResponseDto.error(
+      exceptionResponse,
+      inferErrorCodeFromStatus(status),
+    );
+  }
+
+  if (ResponseDto.isResponseDto(exceptionResponse)) {
+    return exceptionResponse;
+  }
+
+  const body = exceptionResponse as LegacyExceptionBody;
+  const message = body.message
+    ? normalizeMessage(body.message)
+    : 'Internal server error';
+
+  if (Array.isArray(body.message)) {
+    return ResponseDto.error(
+      message,
+      body.code ?? inferErrorCodeFromStatus(status),
+      {
+        errors: body.message.map((validationMessage) => ({
+          field: 'unknown',
+          message: validationMessage,
+        })),
+      },
+    );
+  }
+
+  if (body.success === false) {
+    return ResponseDto.error(message, body.code, body.data as never);
+  }
+
+  return ResponseDto.error(message, inferErrorCodeFromStatus(status));
+};
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   constructor(
@@ -54,6 +114,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request & RequestWithTrace>();
     const response = ctx.getResponse<Response>();
 
+    if (exception instanceof DomainError) {
+      exception = exception.toHttpException();
+    }
+
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -64,19 +128,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : { message: 'Internal server error' };
 
-    const requestId =
-      (request[REQUEST_ID_HEADER] as string | undefined) ??
-      (request.headers[REQUEST_ID_HEADER] as string | undefined);
-
-    const traceId =
-      request.traceId ??
-      this.traceContext.getTraceId() ??
-      (request.headers[TRACE_ID_HEADER] as string | undefined);
-
-    const spanId = request.spanId ?? this.traceContext.getSpanId();
-    const traceparent =
-      request.traceparent ?? this.traceContext.getTraceparent();
-
     const requestPath = request.path ?? request.url.split('?')[0];
 
     if (
@@ -84,39 +135,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException &&
       isTerminusHealthCheckBody(exceptionResponse)
     ) {
-      if (requestId) {
-        response.setHeader(REQUEST_ID_HEADER, requestId);
-      }
-
-      if (traceparent) {
-        response.setHeader(TRACEPARENT_HEADER, traceparent);
-      }
-
-      if (traceId) {
-        response.setHeader(TRACE_ID_HEADER, traceId);
-      }
-
+      const meta = buildResponseMeta(request, this.traceContext);
+      setResponseTraceHeaders(response, meta, this.traceContext);
       response.status(status).json(exceptionResponse);
       return;
     }
 
-    const message =
-      typeof exceptionResponse === 'string'
-        ? exceptionResponse
-        : ((exceptionResponse as { message?: string | string[] }).message ??
-          'Internal server error');
+    const responseBody = toResponseDto(exception, status);
+    const meta = buildResponseMeta(request, this.traceContext);
+    responseBody.meta = meta;
 
-    if (requestId) {
-      response.setHeader(REQUEST_ID_HEADER, requestId);
-    }
-
-    if (traceparent) {
-      response.setHeader(TRACEPARENT_HEADER, traceparent);
-    }
-
-    if (traceId) {
-      response.setHeader(TRACE_ID_HEADER, traceId);
-    }
+    setResponseTraceHeaders(response, meta, this.traceContext);
 
     this.logger.error(
       {
@@ -124,21 +153,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
         statusCode: status,
         method: request.method,
         path: request.url,
-        traceId,
-        spanId,
-        requestId,
+        traceId: meta.traceId,
+        spanId: meta.spanId,
+        requestId: meta.requestId,
       },
-      Array.isArray(message) ? message.join(', ') : message,
+      responseBody.message,
     );
 
-    response.status(status).json({
-      statusCode: status,
-      message,
-      path: request.url,
-      timestamp: new Date().toISOString(),
-      requestId,
-      traceId,
-      spanId,
-    });
+    response.status(status).json(responseBody);
   }
 }

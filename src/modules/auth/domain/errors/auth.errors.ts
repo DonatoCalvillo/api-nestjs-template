@@ -1,65 +1,43 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ResponseDto } from '../../../shared/domain/response/response';
-import { DomainError } from '../../../shared/domain/errors/error';
+import { ConflictError } from '../../../shared/domain/errors/conflict.error';
+import { ForbiddenError } from '../../../shared/domain/errors/forbidden.error';
+import { UnauthorizedError } from '../../../shared/domain/errors/unauthorized.error';
 
-export class InvalidCredentialsError extends DomainError {
+export class InvalidCredentialsError extends UnauthorizedError {
+  readonly code: string = 'E-AUTH-001';
+
   constructor() {
     super('Invalid email or password');
   }
-
-  toHttpException() {
-    return new UnauthorizedException(
-      ResponseDto.error(this.message, 'E-AUTH-001'),
-    );
-  }
 }
 
-export class EmailAlreadyExistsError extends DomainError {
+export class EmailAlreadyExistsError extends ConflictError {
+  readonly code: string = 'E-AUTH-002';
+
   constructor() {
     super('Email is already registered');
   }
-
-  toHttpException() {
-    return new ConflictException(ResponseDto.error(this.message, 'E-AUTH-002'));
-  }
 }
 
-export class InvalidRefreshTokenError extends DomainError {
+export class InvalidRefreshTokenError extends UnauthorizedError {
+  readonly code: string = 'E-AUTH-003';
+
   constructor() {
     super('Invalid or expired refresh token');
   }
-
-  toHttpException() {
-    return new UnauthorizedException(
-      ResponseDto.error(this.message, 'E-AUTH-003'),
-    );
-  }
 }
 
-export class UnauthorizedAccessError extends DomainError {
+export class UnauthorizedAccessError extends UnauthorizedError {
+  readonly code: string = 'E-AUTH-004';
+
   constructor(message = 'Unauthorized') {
     super(message);
   }
-
-  toHttpException() {
-    return new UnauthorizedException(
-      ResponseDto.error(this.message, 'E-AUTH-004'),
-    );
-  }
 }
 
-export class ForbiddenAccessError extends DomainError {
+export class ForbiddenAccessError extends ForbiddenError {
+  readonly code: string = 'E-AUTH-005';
+
   constructor(message = 'Forbidden') {
     super(message);
-  }
-
-  toHttpException() {
-    return new ForbiddenException(
-      ResponseDto.error(this.message, 'E-AUTH-005'),
-    );
   }
 }

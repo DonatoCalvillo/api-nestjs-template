@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
   DataSource,
@@ -63,7 +63,8 @@ describe('ConcurrencyConflictError', () => {
     const error = new ConcurrencyConflictError();
     const httpException = error.toHttpException();
 
-    expect(httpException).toBeInstanceOf(ConflictException);
+    expect(httpException).toBeInstanceOf(HttpException);
+    expect(httpException.getStatus()).toBe(HttpStatus.CONFLICT);
     expect(httpException.getResponse()).toEqual({
       success: false,
       message: expect.stringContaining('modified by another request'),

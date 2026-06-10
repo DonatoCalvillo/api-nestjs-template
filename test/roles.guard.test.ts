@@ -1,4 +1,4 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard } from '../src/modules/auth/infrastructure/guards/roles.guard';
 import { ROLES_KEY } from '../src/modules/auth/infrastructure/constants/auth-metadata.constants';
@@ -48,8 +48,18 @@ describe('RolesGuard', () => {
       key === ROLES_KEY ? ['admin'] : undefined,
     );
 
-    expect(() =>
-      guard.canActivate(createContext({ roles: ['user'], permissions: [] })),
-    ).toThrow(ForbiddenException);
+    try {
+      guard.canActivate(createContext({ roles: ['user'], permissions: [] }));
+      fail('Expected canActivate to throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.FORBIDDEN);
+      expect((error as HttpException).getResponse()).toEqual(
+        expect.objectContaining({
+          success: false,
+          code: 'E-AUTH-005',
+        }),
+      );
+    }
   });
 });

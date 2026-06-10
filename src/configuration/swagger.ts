@@ -1,5 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import {
+  ApiErrorResponseDto,
+  ResponseMetaDto,
+} from '../modules/shared/infrastructure/response';
 import { ENVIRONMENT_VARIABLES } from './environments-variables';
 
 export const setupSwagger = (app: INestApplication): void => {
@@ -22,6 +26,8 @@ export const setupSwagger = (app: INestApplication): void => {
     )
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    extraModels: [ResponseMetaDto, ApiErrorResponseDto],
+  });
   SwaggerModule.setup('api/docs', app, document);
 };

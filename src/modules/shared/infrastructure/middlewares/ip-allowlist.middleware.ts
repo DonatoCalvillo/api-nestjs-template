@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { ENVIRONMENT_VARIABLES } from '../../../../configuration/environments-variables';
+import { ForbiddenError } from '../../domain/errors/forbidden.error';
 
 @Injectable()
 export class IpAllowlistMiddleware implements NestMiddleware {
@@ -25,9 +26,6 @@ export class IpAllowlistMiddleware implements NestMiddleware {
       return;
     }
 
-    res.status(403).json({
-      statusCode: 403,
-      message: 'Forbidden',
-    });
+    next(new ForbiddenError());
   }
 }

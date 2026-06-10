@@ -1,15 +1,12 @@
-import { InternalServerErrorException } from '@nestjs/common';
-import { ErrorCodes } from '../enum/error-codes';
-import { ResponseDto } from '../response/response';
+import { HttpStatus } from '@nestjs/common';
+import { ErrorCodes, ErrorCodesMessages } from '../enum/error-codes';
 import { DomainError } from './error';
 
 export class UnexpectedError extends DomainError {
-  constructor(message = 'An unexpected error occurred') {
-    super(message);
-  }
+  readonly httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+  readonly code: string = ErrorCodes.UNEXPECTED_ERROR;
 
-  public toHttpException() {
-    const error = ResponseDto.error(this.message, ErrorCodes.UNEXPECTED_ERROR);
-    return new InternalServerErrorException(error);
+  constructor(message = ErrorCodesMessages[ErrorCodes.UNEXPECTED_ERROR]()) {
+    super(message);
   }
 }

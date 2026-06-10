@@ -1,4 +1,4 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from '../src/modules/auth/infrastructure/guards/jwt-auth.guard';
 import { IS_PUBLIC_KEY } from '../src/modules/auth/infrastructure/constants/auth-metadata.constants';
@@ -67,8 +67,20 @@ describe('JwtAuthGuard', () => {
   });
 
   it('throws when user is missing', () => {
-    expect(() => guard.handleRequest(null, false)).toThrow(
-      UnauthorizedException,
-    );
+    try {
+      guard.handleRequest(null, false);
+      fail('Expected handleRequest to throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.UNAUTHORIZED,
+      );
+      expect((error as HttpException).getResponse()).toEqual(
+        expect.objectContaining({
+          success: false,
+          code: 'E-AUTH-004',
+        }),
+      );
+    }
   });
 });

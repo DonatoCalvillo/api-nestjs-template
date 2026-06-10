@@ -1,7 +1,12 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExtraModels, ApiTags } from '@nestjs/swagger';
 import { PinoLogger } from 'nestjs-pino';
 import { BaseController } from '../../../shared/infrastructure/controllers/base.controller';
+import {
+  ApiOkResponseEnvelope,
+  ApiStandardErrorResponses,
+  ResponseMetaDto,
+} from '../../../shared/infrastructure/response';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
@@ -15,6 +20,7 @@ import { RegisterDto } from './dtos/register.dto';
 import { TokenResponseDto } from './dtos/token-response.dto';
 
 @ApiTags('auth')
+@ApiExtraModels(TokenResponseDto, ResponseMetaDto)
 @Controller('auth')
 export class AuthController extends BaseController {
   constructor(
@@ -29,7 +35,8 @@ export class AuthController extends BaseController {
 
   @Public()
   @Post('register')
-  @ApiOkResponse({ type: TokenResponseDto })
+  @ApiOkResponseEnvelope(TokenResponseDto)
+  @ApiStandardErrorResponses()
   async register(@Body() dto: RegisterDto): Promise<TokenResponseDto> {
     return this.executeUseCase(this.registerUserUseCase, dto);
   }
@@ -37,7 +44,8 @@ export class AuthController extends BaseController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ type: TokenResponseDto })
+  @ApiOkResponseEnvelope(TokenResponseDto)
+  @ApiStandardErrorResponses()
   async login(@Body() dto: LoginDto): Promise<TokenResponseDto> {
     return this.executeUseCase(this.loginUseCase, dto);
   }
@@ -45,7 +53,8 @@ export class AuthController extends BaseController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ type: TokenResponseDto })
+  @ApiOkResponseEnvelope(TokenResponseDto)
+  @ApiStandardErrorResponses()
   async refresh(@Body() dto: RefreshTokenDto): Promise<TokenResponseDto> {
     return this.executeUseCase(this.refreshTokenUseCase, dto);
   }

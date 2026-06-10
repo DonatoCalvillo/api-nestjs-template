@@ -442,6 +442,12 @@ Copy the security block from `example.env` into your `.env` file.
 
 **Health check:** `GET /healthy` runs active Terminus checks (PostgreSQL, disk storage, and OTLP collector when tracing is enabled). Returns JSON with `status: "ok"` (HTTP 200) or `status: "error"` (HTTP 503). Exempt from rate limiting and IP filtering for orchestrator and load balancer probes.
 
+## API responses
+
+Success and error responses use a unified `ResponseDto` envelope (`success`, `message`, `data`, `code`, `meta`). Controllers return plain DTOs; `TransformResponseInterceptor` wraps them automatically. Domain errors map to typed HTTP statuses with stable error codes.
+
+See [docs/api-responses.md](docs/api-responses.md) for the full contract, validation error shape, and excluded routes (`/healthy`, `/metrics`, Swagger).
+
 ## 📋 Audit log
 
 Command use cases that mutate data can opt in to automatic audit logging with the `@AuditLog()` decorator. Each entry records who performed the action, when it happened, and what changed (before state, after state, and a field-level diff).

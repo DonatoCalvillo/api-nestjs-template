@@ -1,19 +1,16 @@
-import { InternalServerErrorException } from '@nestjs/common';
-import { ResponseDto } from '../response/response';
-import { DomainError } from './error';
+import { HttpStatus } from '@nestjs/common';
 import { ErrorCodes } from '../enum/error-codes';
+import { DomainError } from './error';
 
 export class DatabaseError extends DomainError {
+  readonly httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+  readonly code: string = ErrorCodes.DATABASE_ERROR;
+
   constructor(cause: unknown) {
     super(
       cause instanceof Error
         ? cause.message
         : 'There was a database error with unknown cause',
     );
-  }
-
-  public toHttpException() {
-    const error = ResponseDto.error(this.message, ErrorCodes.DATABASE_ERROR);
-    return new InternalServerErrorException(error);
   }
 }

@@ -1,11 +1,9 @@
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
+import { DomainError } from '../../../shared/domain/errors/error';
 import { ActorContextService } from '../../../shared/infrastructure/audit/actor-context.service';
+import { UnauthorizedAccessError } from '../../domain/errors/auth.errors';
 import { IS_PUBLIC_KEY } from '../constants/auth-metadata.constants';
 import { isPublicPath } from '../constants/public-paths';
 import { AuthenticatedUser } from '../../../users/application/types/authenticated-user';
@@ -50,7 +48,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     user: TUser | false,
   ): TUser {
     if (err || !user) {
-      throw err ?? new UnauthorizedException();
+      if (err instanceof DomainError) {
+        throw err.toHttpException();
+      }
+
+      if (err) {
+        throw err;
+      }
+
+      throw new UnauthorizedAccessError().toHttpException();
     }
 
     const authenticatedUser = user as unknown as AuthenticatedUser;
