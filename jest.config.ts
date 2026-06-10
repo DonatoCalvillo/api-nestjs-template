@@ -1,3 +1,6 @@
+const esmNodeModulesPattern =
+  '(@scure|@otplib|@noble|otplib|openid-client|oauth4webapi|jose)';
+
 const baseConfig = {
   preset: 'ts-jest',
   testEnvironment: 'node',
@@ -11,8 +14,20 @@ const baseConfig = {
         },
       },
     ],
+    '^.+\\.m?js$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          allowJs: true,
+          types: ['jest', 'node'],
+        },
+      },
+    ],
   },
-  transformIgnorePatterns: ['/node_modules/'],
+  transformIgnorePatterns: [
+    `/node_modules/.pnpm/(?!${esmNodeModulesPattern}[+@])`,
+    `/node_modules/(?!\\.pnpm/)(?!${esmNodeModulesPattern}/)`,
+  ],
   testPathIgnorePatterns: ['<rootDir>/node_modules', '<rootDir>/dist'],
   extensionsToTreatAsEsm: ['.ts'],
   modulePathIgnorePatterns: ['<rootDir>/dist'],

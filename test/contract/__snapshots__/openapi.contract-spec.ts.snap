@@ -10,6 +10,85 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
         "properties": {},
         "type": "object",
       },
+      "CreateApiKeyDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+          },
+          "key": {
+            "type": "string",
+          },
+          "keyPrefix": {
+            "type": "string",
+          },
+          "name": {
+            "type": "string",
+          },
+          "scopes": {
+            "example": [
+              "internal:read",
+            ],
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "name",
+          "scopes",
+          "id",
+          "key",
+          "keyPrefix",
+        ],
+        "type": "object",
+      },
+      "FileUploadResponseDto": {
+        "properties": {
+          "key": {
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890-document.pdf",
+            "type": "string",
+          },
+          "url": {
+            "example": "http://localhost:9000/uploads/a1b2c3d4-document.pdf",
+            "type": "string",
+          },
+        },
+        "required": [
+          "key",
+          "url",
+        ],
+        "type": "object",
+      },
+      "ForgotPasswordDto": {
+        "properties": {
+          "email": {
+            "example": "user@example.com",
+            "type": "string",
+          },
+        },
+        "required": [
+          "email",
+        ],
+        "type": "object",
+      },
+      "HealthSummaryResponseDto": {
+        "properties": {
+          "service": {
+            "example": "nestjs-api-template",
+            "type": "string",
+          },
+          "status": {
+            "example": "ok",
+            "type": "string",
+          },
+        },
+        "required": [
+          "status",
+          "service",
+        ],
+        "type": "object",
+      },
       "LoginDto": {
         "properties": {
           "email": {
@@ -27,6 +106,26 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
         ],
         "type": "object",
       },
+      "LoginResponseDto": {
+        "properties": {
+          "accessToken": {
+            "type": "string",
+          },
+          "expiresIn": {
+            "type": "string",
+          },
+          "mfaRequired": {
+            "type": "boolean",
+          },
+          "mfaToken": {
+            "type": "string",
+          },
+          "refreshToken": {
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
       "LogoutResponseDto": {
         "properties": {
           "success": {
@@ -36,6 +135,49 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
         },
         "required": [
           "success",
+        ],
+        "type": "object",
+      },
+      "MfaChallengeDto": {
+        "properties": {
+          "code": {
+            "example": "123456",
+            "type": "string",
+          },
+          "mfaToken": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "mfaToken",
+          "code",
+        ],
+        "type": "object",
+      },
+      "MfaSetupResponseDto": {
+        "properties": {
+          "otpauthUri": {
+            "type": "string",
+          },
+          "qrCodeDataUrl": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "otpauthUri",
+          "qrCodeDataUrl",
+        ],
+        "type": "object",
+      },
+      "MfaVerifyDto": {
+        "properties": {
+          "code": {
+            "example": "123456",
+            "type": "string",
+          },
+        },
+        "required": [
+          "code",
         ],
         "type": "object",
       },
@@ -103,6 +245,21 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
           "name",
           "email",
           "password",
+        ],
+        "type": "object",
+      },
+      "ResetPasswordDto": {
+        "properties": {
+          "newPassword": {
+            "type": "string",
+          },
+          "token": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "token",
+          "newPassword",
         ],
         "type": "object",
       },
@@ -203,6 +360,17 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
         ],
         "type": "object",
       },
+      "VerifyEmailDto": {
+        "properties": {
+          "token": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "token",
+        ],
+        "type": "object",
+      },
     },
     "securitySchemes": {
       "access-token": {
@@ -221,6 +389,213 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/admin/api-keys": {
+      "post": {
+        "operationId": "AdminController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreateApiKeyDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "API key created",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "admin",
+        ],
+      },
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LogoutResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "AuthController_login",
@@ -242,7 +617,7 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/TokenResponseDto",
+                      "$ref": "#/components/schemas/LoginResponseDto",
                     },
                     "message": {
                       "example": "Request successful",
@@ -423,6 +798,390 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
             "access-token": [],
           },
         ],
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/mfa/challenge": {
+      "post": {
+        "operationId": "AuthController_mfaChallenge",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaChallengeDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TokenResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/mfa/setup": {
+      "post": {
+        "operationId": "AuthController_mfaSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MfaSetupResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/mfa/verify": {
+      "post": {
+        "operationId": "AuthController_mfaVerify",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerifyDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LogoutResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "MFA enabled",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/oidc/{provider}": {
+      "get": {
+        "operationId": "AuthController_oidcRedirect",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/oidc/{provider}/callback": {
+      "get": {
+        "operationId": "AuthController_oidcCallback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TokenResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
         "tags": [
           "auth",
         ],
@@ -627,6 +1386,411 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
         },
         "tags": [
           "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LogoutResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "operationId": "AuthController_verifyEmail",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LogoutResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Email verified",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/files/upload": {
+      "post": {
+        "operationId": "FilesController_upload",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FileUploadResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Uploaded file metadata",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "files",
+        ],
+      },
+    },
+    "/api/v1/internal/health-summary": {
+      "get": {
+        "operationId": "InternalController_getHealthSummary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/HealthSummaryResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Service health summary for S2S consumers",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "internal",
         ],
       },
     },
@@ -861,6 +2025,109 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
       },
     },
     "/api/v1/users/{id}": {
+      "delete": {
+        "operationId": "UsersController_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LogoutResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "User deleted successfully",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "users",
+        ],
+      },
       "patch": {
         "operationId": "UsersController_update",
         "parameters": [
@@ -1351,6 +2618,22 @@ The Health Check is not successful",
     {
       "description": "Authentication and session management",
       "name": "auth",
+    },
+    {
+      "description": "User profiles and administration",
+      "name": "users",
+    },
+    {
+      "description": "Administrative operations",
+      "name": "admin",
+    },
+    {
+      "description": "Service-to-service endpoints",
+      "name": "internal",
+    },
+    {
+      "description": "File uploads",
+      "name": "files",
     },
     {
       "description": "Health probes for orchestrators and load balancers",
