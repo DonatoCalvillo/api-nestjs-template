@@ -46,6 +46,7 @@ interface EnvironmentVariables {
   OUTBOX_RELAY_CRON: string;
   OUTBOX_RELAY_BATCH_SIZE: number;
   OUTBOX_RELAY_MAX_ATTEMPTS: number;
+  SWAGGER_ENABLED: boolean;
 }
 
 const environmentSchema = joi
@@ -89,6 +90,7 @@ const environmentSchema = joi
     OUTBOX_RELAY_CRON: joi.string().default('*/5 * * * * *'),
     OUTBOX_RELAY_BATCH_SIZE: joi.number().min(1).default(50),
     OUTBOX_RELAY_MAX_ATTEMPTS: joi.number().min(1).default(5),
+    SWAGGER_ENABLED: booleanEnv(process.env.NODE_ENV === 'development'),
   })
   .unknown();
 
@@ -137,4 +139,5 @@ export const ENVIRONMENT_VARIABLES = {
   OUTBOX_RELAY_CRON: environmentVariables.OUTBOX_RELAY_CRON,
   OUTBOX_RELAY_BATCH_SIZE: environmentVariables.OUTBOX_RELAY_BATCH_SIZE,
   OUTBOX_RELAY_MAX_ATTEMPTS: environmentVariables.OUTBOX_RELAY_MAX_ATTEMPTS,
+  SWAGGER_ENABLED: environmentVariables.SWAGGER_ENABLED,
 };
