@@ -57,6 +57,25 @@ describe('HttpExceptionFilter', () => {
       }),
     }) as unknown as ArgumentsHost;
 
+  it('logs request.path without query string on errors', () => {
+    filter.catch(new InvalidCredentialsError(), {
+      switchToHttp: () => ({
+        getRequest: () => ({
+          path: '/api/v1/auth/login',
+          url: '/api/v1/auth/login?token=secret',
+          method: 'POST',
+          headers: { 'x-request-id': 'req-1' },
+        }),
+        getResponse: () => ({ status, setHeader }),
+      }),
+    } as unknown as ArgumentsHost);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/api/v1/auth/login' }),
+      expect.any(String),
+    );
+  });
+
   it('maps DomainError to ResponseDto with code and meta', () => {
     filter.catch(
       new InvalidCredentialsError(),

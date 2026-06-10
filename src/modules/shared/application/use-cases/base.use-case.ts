@@ -1,6 +1,8 @@
 import { PinoLogger } from 'nestjs-pino';
 import { DomainError } from '../../domain/errors/error';
 import { UnexpectedError } from '../../domain/errors/unexpected.error';
+import { SENSITIVE_LOG_FIELDS } from '../../infrastructure/logging/sensitive-fields.constants';
+import { sanitizeForLogging } from '../../infrastructure/logging/sanitize-for-logging.util';
 import { IUseCase } from './use-case.interface';
 import { UseCaseContext } from './use-case.context';
 
@@ -72,19 +74,6 @@ export abstract class BaseUseCase<TInput, TOutput> implements IUseCase<
   }
 
   protected sanitizeForLog(input: TInput): Partial<TInput> {
-    if (!input || typeof input !== 'object') {
-      return input as Partial<TInput>;
-    }
-
-    const sanitized = { ...input } as Record<string, unknown>;
-    const sensitiveFields = ['password', 'token', 'secret', 'apiKey'];
-
-    for (const field of sensitiveFields) {
-      if (field in sanitized) {
-        sanitized[field] = '***REDACTED***';
-      }
-    }
-
-    return sanitized as Partial<TInput>;
+    return sanitizeForLogging(input, SENSITIVE_LOG_FIELDS) as Partial<TInput>;
   }
 }

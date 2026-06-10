@@ -70,6 +70,7 @@ describe('audit-sanitize.util', () => {
     const input = {
       email: 'alice@example.com',
       password: 'secret123',
+      refreshToken: 'rt-secret',
       profile: {
         token: 'abc',
         city: 'Madrid',
@@ -79,6 +80,7 @@ describe('audit-sanitize.util', () => {
     expect(sanitizeAuditState(input)).toEqual({
       email: 'alice@example.com',
       password: '***REDACTED***',
+      refreshToken: '***REDACTED***',
       profile: {
         token: '***REDACTED***',
         city: 'Madrid',

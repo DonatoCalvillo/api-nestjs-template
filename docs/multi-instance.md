@@ -30,7 +30,7 @@ OUTBOX_RELAY_LOCK_TTL_SECONDS=120
 ## Rate limiting (`THROTTLE_STORAGE`)
 
 - **`memory`**: cada réplica mantiene su propio contador. Un cliente puede enviar `THROTTLE_LIMIT` requests a *cada* pod.
-- **`redis`**: los contadores se almacenan en Redis vía `@nest-lab/throttler-storage-redis`. El límite `THROTTLE_LIMIT` aplica de forma global por IP (o tracker por defecto del guard).
+- **`redis`**: los contadores se almacenan en Redis vía `@nest-lab/throttler-storage-redis`. El límite `THROTTLE_LIMIT` aplica de forma global por usuario JWT (`user:{id}`) o por IP en rutas anónimas.
 
 `ConditionalThrottlerGuard` y las variables `THROTTLE_ENABLED`, `THROTTLE_TTL`, `THROTTLE_LIMIT` siguen aplicando igual.
 

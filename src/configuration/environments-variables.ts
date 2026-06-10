@@ -44,6 +44,8 @@ interface EnvironmentVariables {
   OTEL_SERVICE_NAME: string;
   OTEL_EXPORTER_OTLP_ENDPOINT: string;
   METRICS_ENABLED: boolean;
+  METRICS_IP_FILTER_ENABLED: boolean;
+  METRICS_IP_ALLOWLIST: string;
   HEALTH_DISK_PATH: string;
   HEALTH_DISK_THRESHOLD_PERCENT: number;
   OUTBOX_RELAY_ENABLED: boolean;
@@ -116,6 +118,10 @@ const environmentSchema = joi
       .string()
       .default('http://localhost:4318/v1/traces'),
     METRICS_ENABLED: booleanEnv(true),
+    METRICS_IP_FILTER_ENABLED: booleanEnv(
+      process.env.NODE_ENV === 'production',
+    ),
+    METRICS_IP_ALLOWLIST: joi.string().default('127.0.0.1,::1'),
     HEALTH_DISK_PATH: joi.string().default('/'),
     HEALTH_DISK_THRESHOLD_PERCENT: joi.number().min(0).max(1).default(0.9),
     OUTBOX_RELAY_ENABLED: booleanEnv(false),
@@ -163,6 +169,15 @@ if (error) throw new ConfigurationEnvironmentVariableError(error.message);
 
 const environmentVariables: EnvironmentVariables = value;
 
+if (
+  environmentVariables.NODE_ENV === 'production' &&
+  environmentVariables.CORS_ORIGINS === '*'
+) {
+  console.warn(
+    'CORS_ORIGINS=* in production allows any origin. Set explicit origins.',
+  );
+}
+
 export const ENVIRONMENT_VARIABLES = {
   NODE_ENV: environmentVariables.NODE_ENV,
   PORT: environmentVariables.PORT,
@@ -200,6 +215,8 @@ export const ENVIRONMENT_VARIABLES = {
   OTEL_SERVICE_NAME: environmentVariables.OTEL_SERVICE_NAME,
   OTEL_EXPORTER_OTLP_ENDPOINT: environmentVariables.OTEL_EXPORTER_OTLP_ENDPOINT,
   METRICS_ENABLED: environmentVariables.METRICS_ENABLED,
+  METRICS_IP_FILTER_ENABLED: environmentVariables.METRICS_IP_FILTER_ENABLED,
+  METRICS_IP_ALLOWLIST: parseCsv(environmentVariables.METRICS_IP_ALLOWLIST),
   HEALTH_DISK_PATH: environmentVariables.HEALTH_DISK_PATH,
   HEALTH_DISK_THRESHOLD_PERCENT:
     environmentVariables.HEALTH_DISK_THRESHOLD_PERCENT,

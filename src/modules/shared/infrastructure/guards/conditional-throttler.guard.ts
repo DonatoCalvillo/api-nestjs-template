@@ -23,4 +23,14 @@ export class ConditionalThrottlerGuard extends ThrottlerGuard {
 
     return super.canActivate(context) as Promise<boolean>;
   }
+
+  protected async getTracker(req: Record<string, unknown>): Promise<string> {
+    const user = req.user as { id?: string } | undefined;
+
+    if (user?.id) {
+      return `user:${user.id}`;
+    }
+
+    return (req.ip as string | undefined) ?? 'unknown';
+  }
 }

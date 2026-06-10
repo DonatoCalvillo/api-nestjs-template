@@ -152,7 +152,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         err: exception,
         statusCode: status,
         method: request.method,
-        path: request.url,
+        path: request.path,
         traceId: meta.traceId,
         spanId: meta.spanId,
         requestId: meta.requestId,

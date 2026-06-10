@@ -5,7 +5,18 @@ import {
   RequestWithTrace,
   TRACE_ID_HEADER,
 } from '../modules/shared/infrastructure/tracing/trace-context.constants';
+import { SENSITIVE_LOG_FIELDS } from '../modules/shared/infrastructure/logging/sensitive-fields.constants';
 import { ENVIRONMENT_VARIABLES } from './environments-variables';
+
+const buildRedactPaths = (): string[] => {
+  const fieldPaths = SENSITIVE_LOG_FIELDS.flatMap((field) => [
+    field,
+    `*.${field}`,
+    `*.*.${field}`,
+  ]);
+
+  return ['req.headers.authorization', 'req.headers.cookie', ...fieldPaths];
+};
 
 type RequestWithContext = IncomingMessage &
   Record<string, string> &
@@ -63,6 +74,10 @@ export const loggerOptions = {
       };
     },
     autoLogging: false,
+    redact: {
+      paths: buildRedactPaths(),
+      censor: '***REDACTED***',
+    },
     serializers: {
       req: () => undefined,
       res: () => undefined,

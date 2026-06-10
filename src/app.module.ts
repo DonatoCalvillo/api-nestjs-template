@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ClsModule } from 'nestjs-cls';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -12,6 +17,8 @@ import { RequestContextMiddleware } from './modules/shared/infrastructure/audit/
 import { ApiVersionMiddleware } from './modules/shared/infrastructure/middlewares/api-version.middleware';
 import { RequestIdMiddleware } from './modules/shared/infrastructure/middlewares/request-id.middleware';
 import { IpAllowlistMiddleware } from './modules/shared/infrastructure/middlewares/ip-allowlist.middleware';
+import { MetricsIpAllowlistMiddleware } from './modules/shared/infrastructure/middlewares/metrics-ip-allowlist.middleware';
+import { METRICS_PATH } from './modules/shared/infrastructure/metrics/metrics.constants';
 import { ConditionalThrottlerGuard } from './modules/shared/infrastructure/guards/conditional-throttler.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthyModule } from './modules/healthy/healthy.module';
@@ -98,6 +105,10 @@ import {
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(MetricsIpAllowlistMiddleware)
+      .forRoutes({ path: METRICS_PATH, method: RequestMethod.GET });
+
     consumer
       .apply(
         IpAllowlistMiddleware,
