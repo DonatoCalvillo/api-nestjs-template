@@ -672,6 +672,24 @@ To revert the last migration
 pnpm migration:revert
 ```
 
+### RBAC bootstrap
+
+After running migrations, seed the base roles required by registration (`user`) and administration (`admin`):
+
+```bash
+pnpm seed:rbac
+```
+
+The script is idempotent — safe to re-run on every deploy. Include it in your CI/CD pipeline or Docker entrypoint after `migration:run` (including when `DB_MIGRATIONS_RUN=true`).
+
+Typical fresh deploy sequence:
+
+```bash
+pnpm migration:run
+pnpm seed:rbac
+pnpm start:prod
+```
+
 ## 📋 Testing
 
 Tests are written with **Jest** (`jest@30.x`).

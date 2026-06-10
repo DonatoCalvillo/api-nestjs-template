@@ -101,6 +101,13 @@ export class TypeOrmUserRepository implements IUserRepository {
       relations: { permissions: true },
     });
 
+    if (roles.length !== params.roleNames.length) {
+      const missing = params.roleNames.filter(
+        (name) => !roles.some((role) => role.name === name),
+      );
+      throw new Error(`Missing roles: ${missing.join(', ')}`);
+    }
+
     const entity = new UserEntity();
     entity.email = params.email;
     entity.name = params.name;

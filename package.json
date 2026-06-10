@@ -30,6 +30,7 @@
     "migration:run": "pnpm run typeorm migration:run -d dist/database/data-source.js",
     "migration:revert": "pnpm run typeorm migration:revert -d dist/database/data-source.js",
     "migration:show": "pnpm run typeorm migration:show -d dist/database/data-source.js",
+    "seed:rbac": "pnpm run build && node dist/database/seeds/run-seed-rbac.js",
     "deps:check-age": "node scripts/find-safe-versions.mjs 7",
     "audit:ci": "pnpm audit --audit-level=high"
   },

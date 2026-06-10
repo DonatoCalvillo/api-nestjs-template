@@ -4,6 +4,7 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../../users/application/ports/user.repository.port';
+import { DEFAULT_REGISTRATION_ROLE } from '../../domain/constants/rbac.constants';
 import { EmailAlreadyExistsError } from '../../domain/errors/auth.errors';
 import {
   IRefreshTokenRepository,
@@ -55,7 +56,7 @@ export class RegisterUserUseCase extends CommandUseCase<
       email: command.email,
       name: command.name,
       passwordHash,
-      roleNames: ['user'],
+      roleNames: [DEFAULT_REGISTRATION_ROLE],
     });
 
     const { accessToken, expiresIn } = await this.tokenService.signAccessToken(
