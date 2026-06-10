@@ -4,6 +4,7 @@ import {
   DomainEventStagingService,
   IDomainEventDispatcher,
 } from '../src/modules/shared/application/events';
+import { OutboxService } from '../src/modules/shared/application/outbox/outbox.service';
 import { ITransactionManager } from '../src/modules/shared/application/ports/transaction-manager.port';
 import { CommandUseCase } from '../src/modules/shared/application/use-cases/command.use-case';
 import {
@@ -12,43 +13,48 @@ import {
 } from '../src/modules/shared/domain/model';
 import { IDomainEvent } from '../src/modules/shared/domain/events';
 
-class CommandEvent implements IDomainEvent {
-  static readonly eventName = 'command.executed';
-  readonly eventName = CommandEvent.eventName;
+class OutboxCommandEvent implements IDomainEvent {
+  static readonly eventName = 'outbox.command.executed';
+  readonly eventName = OutboxCommandEvent.eventName;
   readonly occurredAt = new Date();
 }
 
-type CommandProps = { label: string };
+type OutboxCommandProps = { label: string };
 
-class CommandAggregate extends AggregateRoot<CommandProps> {
-  constructor(params: BaseModelParams<CommandProps>) {
+class OutboxCommandAggregate extends AggregateRoot<OutboxCommandProps> {
+  constructor(params: BaseModelParams<OutboxCommandProps>) {
     super(params);
   }
 
   markExecuted(): void {
-    this.addDomainEvent(new CommandEvent());
+    this.addDomainEvent(new OutboxCommandEvent());
   }
 }
 
-class TestCommandUseCase extends CommandUseCase<void, CommandAggregate> {
+class TestOutboxCommandUseCase extends CommandUseCase<
+  void,
+  OutboxCommandAggregate
+> {
   constructor(
     logger: PinoLogger,
     transactionManager: ITransactionManager | undefined,
     staging: DomainEventStagingService,
     dispatcher: IDomainEventDispatcher,
-    private readonly aggregate: CommandAggregate,
+    outboxService: OutboxService,
+    private readonly aggregate: OutboxCommandAggregate,
     private readonly shouldFail = false,
   ) {
     super(logger, transactionManager);
     this.domainEventStaging = staging;
     this.domainEventDispatcher = dispatcher;
+    this.outboxService = outboxService;
   }
 
   protected requiresTransaction(): boolean {
     return true;
   }
 
-  protected async executeCommand(): Promise<CommandAggregate> {
+  protected async executeCommand(): Promise<OutboxCommandAggregate> {
     if (this.shouldFail) {
       throw new Error('command failed');
     }
@@ -70,10 +76,11 @@ class FakeTransactionManager implements ITransactionManager {
   }
 }
 
-describe('CommandUseCase domain events', () => {
+describe('CommandUseCase outbox', () => {
   let logger: PinoLogger;
   let staging: DomainEventStagingService;
   let dispatcher: jest.Mocked<IDomainEventDispatcher>;
+  let outboxService: jest.Mocked<OutboxService>;
 
   beforeEach(() => {
     logger = {
@@ -84,25 +91,30 @@ describe('CommandUseCase domain events', () => {
 
     staging = {
       stageFrom: jest.fn(),
-      drain: jest.fn().mockReturnValue([new CommandEvent()]),
+      drain: jest.fn().mockReturnValue([new OutboxCommandEvent()]),
     } as unknown as DomainEventStagingService;
 
     dispatcher = {
       dispatch: jest.fn().mockResolvedValue(undefined),
     };
+
+    outboxService = {
+      persistStaged: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<OutboxService>;
   });
 
-  it('stages events from the command result and dispatches after commit', async () => {
-    const aggregate = new CommandAggregate({
-      id: '550e8400-e29b-41d4-a716-446655440010',
+  it('persists staged events inside the transaction before commit', async () => {
+    const aggregate = new OutboxCommandAggregate({
+      id: '550e8400-e29b-41d4-a716-446655440020',
       props: { label: 'test' },
     });
 
-    const useCase = new TestCommandUseCase(
+    const useCase = new TestOutboxCommandUseCase(
       logger,
       new FakeTransactionManager(),
       staging,
       dispatcher,
+      outboxService,
       aggregate,
     );
 
@@ -110,23 +122,22 @@ describe('CommandUseCase domain events', () => {
 
     expect(result.isSuccess).toBe(true);
     expect(staging.stageFrom).toHaveBeenCalledWith(aggregate);
+    expect(outboxService.persistStaged).toHaveBeenCalledWith({});
     expect(staging.drain).toHaveBeenCalledTimes(1);
-    expect(dispatcher.dispatch).toHaveBeenCalledWith([
-      expect.any(CommandEvent),
-    ]);
   });
 
-  it('does not dispatch when the transaction rolls back', async () => {
-    const aggregate = new CommandAggregate({
-      id: '550e8400-e29b-41d4-a716-446655440011',
+  it('does not persist outbox rows when the transaction rolls back', async () => {
+    const aggregate = new OutboxCommandAggregate({
+      id: '550e8400-e29b-41d4-a716-446655440021',
       props: { label: 'test' },
     });
 
-    const useCase = new TestCommandUseCase(
+    const useCase = new TestOutboxCommandUseCase(
       logger,
       new FakeTransactionManager(true),
       staging,
       dispatcher,
+      outboxService,
       aggregate,
     );
 
@@ -134,49 +145,27 @@ describe('CommandUseCase domain events', () => {
       'transaction rollback',
     );
 
-    expect(staging.drain).not.toHaveBeenCalled();
-    expect(dispatcher.dispatch).not.toHaveBeenCalled();
+    expect(outboxService.persistStaged).not.toHaveBeenCalled();
   });
 
-  it('does not dispatch when the command fails inside the transaction', async () => {
-    const aggregate = new CommandAggregate({
-      id: '550e8400-e29b-41d4-a716-446655440012',
+  it('does not persist outbox rows when the command fails', async () => {
+    const aggregate = new OutboxCommandAggregate({
+      id: '550e8400-e29b-41d4-a716-446655440022',
       props: { label: 'test' },
     });
 
-    const useCase = new TestCommandUseCase(
+    const useCase = new TestOutboxCommandUseCase(
       logger,
       new FakeTransactionManager(),
       staging,
       dispatcher,
+      outboxService,
       aggregate,
       true,
     );
 
     await expect(useCase.execute(undefined)).rejects.toThrow('command failed');
 
-    expect(staging.drain).not.toHaveBeenCalled();
-    expect(dispatcher.dispatch).not.toHaveBeenCalled();
-  });
-
-  it('skips dispatch when no events were staged', async () => {
-    staging.drain = jest.fn().mockReturnValue([]);
-
-    const aggregate = new CommandAggregate({
-      id: '550e8400-e29b-41d4-a716-446655440013',
-      props: { label: 'test' },
-    });
-
-    const useCase = new TestCommandUseCase(
-      logger,
-      new FakeTransactionManager(),
-      staging,
-      dispatcher,
-      aggregate,
-    );
-
-    await useCase.execute(undefined);
-
-    expect(dispatcher.dispatch).not.toHaveBeenCalled();
+    expect(outboxService.persistStaged).not.toHaveBeenCalled();
   });
 });

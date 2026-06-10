@@ -9,6 +9,7 @@ import {
   DomainEventStagingService,
   IDomainEventDispatcher,
 } from '../events';
+import { OutboxService } from '../outbox/outbox.service';
 import { ITransactionManager } from '../ports/transaction-manager.port';
 import { BaseUseCase } from './base.use-case';
 import { Result } from './result';
@@ -28,6 +29,9 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
   @Optional()
   @Inject(DOMAIN_EVENT_DISPATCHER)
   protected domainEventDispatcher?: IDomainEventDispatcher;
+
+  @Optional()
+  protected outboxService?: OutboxService;
 
   constructor(
     logger: PinoLogger,
@@ -69,6 +73,7 @@ export abstract class CommandUseCase<TCommand, TResult> extends BaseUseCase<
           : await runCommand();
 
       this.domainEventStaging?.stageFrom(result);
+      await this.outboxService?.persistStaged(context?.trx);
 
       return Result.ok(result);
     } catch (error) {

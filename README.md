@@ -464,7 +464,7 @@ Run the migration with `pnpm migration:run`. Full guide with create/update/delet
 
 ## 📣 Domain events
 
-Aggregates that extend `AggregateRoot` can register domain events when their state changes. `CommandUseCase` collects those events from the command result and publishes them asynchronously (in-process) after the database transaction commits.
+Aggregates that extend `AggregateRoot` can register domain events when their state changes. `CommandUseCase` collects those events from the command result, persists them in the transactional outbox (`outbox_messages`) inside the same database transaction, and publishes them asynchronously (in-process) after commit.
 
 ```typescript
 export class UserCreatedEvent implements IDomainEvent {
@@ -495,7 +495,7 @@ export class SendWelcomeEmailOnUserCreatedHandler {
 }
 ```
 
-`EventEmitterModule` and the dispatcher are wired globally in `SharedModule`. Full guide: **[docs/domain-events.md](docs/domain-events.md)**.
+`EventEmitterModule`, the dispatcher, and the outbox relay are wired globally in `SharedModule`. Run `pnpm migration:run` to create `outbox_messages`. Enable external relay with `OUTBOX_RELAY_ENABLED=true` and replace `NoOpMessageBrokerPublisher` with your broker adapter. Full guide: **[docs/domain-events.md](docs/domain-events.md)**.
 
 ## 🛡️ HTTP Resilience
 

@@ -55,4 +55,13 @@ describe('DomainEventStagingService', () => {
   it('returns empty array when nothing was staged', () => {
     expect(service.drain()).toEqual([]);
   });
+
+  it('peekStaged returns staged events without clearing them', () => {
+    const event = new StagedEvent();
+    store.set(CLS_DOMAIN_EVENTS, [event]);
+
+    expect(service.peekStaged()).toEqual([event]);
+    expect(service.peekStaged()).toEqual([event]);
+    expect(cls.set).not.toHaveBeenCalledWith(CLS_DOMAIN_EVENTS, []);
+  });
 });

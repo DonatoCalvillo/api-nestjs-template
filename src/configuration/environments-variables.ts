@@ -42,6 +42,10 @@ interface EnvironmentVariables {
   METRICS_ENABLED: boolean;
   HEALTH_DISK_PATH: string;
   HEALTH_DISK_THRESHOLD_PERCENT: number;
+  OUTBOX_RELAY_ENABLED: boolean;
+  OUTBOX_RELAY_CRON: string;
+  OUTBOX_RELAY_BATCH_SIZE: number;
+  OUTBOX_RELAY_MAX_ATTEMPTS: number;
 }
 
 const environmentSchema = joi
@@ -81,6 +85,10 @@ const environmentSchema = joi
     METRICS_ENABLED: booleanEnv(true),
     HEALTH_DISK_PATH: joi.string().default('/'),
     HEALTH_DISK_THRESHOLD_PERCENT: joi.number().min(0).max(1).default(0.9),
+    OUTBOX_RELAY_ENABLED: booleanEnv(false),
+    OUTBOX_RELAY_CRON: joi.string().default('*/5 * * * * *'),
+    OUTBOX_RELAY_BATCH_SIZE: joi.number().min(1).default(50),
+    OUTBOX_RELAY_MAX_ATTEMPTS: joi.number().min(1).default(5),
   })
   .unknown();
 
@@ -125,4 +133,8 @@ export const ENVIRONMENT_VARIABLES = {
   HEALTH_DISK_PATH: environmentVariables.HEALTH_DISK_PATH,
   HEALTH_DISK_THRESHOLD_PERCENT:
     environmentVariables.HEALTH_DISK_THRESHOLD_PERCENT,
+  OUTBOX_RELAY_ENABLED: environmentVariables.OUTBOX_RELAY_ENABLED,
+  OUTBOX_RELAY_CRON: environmentVariables.OUTBOX_RELAY_CRON,
+  OUTBOX_RELAY_BATCH_SIZE: environmentVariables.OUTBOX_RELAY_BATCH_SIZE,
+  OUTBOX_RELAY_MAX_ATTEMPTS: environmentVariables.OUTBOX_RELAY_MAX_ATTEMPTS,
 };

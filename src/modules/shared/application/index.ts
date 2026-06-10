@@ -1,5 +1,6 @@
 export * from './audit';
 export * from './events';
+export * from './outbox';
 export * from './mappers';
 export * from './use-cases';
 export {

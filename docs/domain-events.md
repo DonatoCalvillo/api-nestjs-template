@@ -7,7 +7,7 @@ Aggregates can record domain events when their state changes. After a `CommandUs
 - Extend **`AggregateRoot`** (not `BaseModel`) for aggregates that emit events.
 - Register events inside factory methods or domain methods (`create`, `update`, `cancel`, etc.).
 - Use handlers for **side effects** (email, cache invalidation, projections) — not for core aggregate invariants.
-- Keep handlers **idempotent**; there is no durable outbox in this template.
+- Keep handlers **idempotent**; external consumers must also be idempotent (at-least-once delivery via outbox).
 
 ## Setup
 
@@ -96,9 +96,85 @@ No manual `dispatch` call is needed in the use case.
 
 ```
 Aggregate.addDomainEvent() → repository.save() → stageFrom(result)
+  → persistStaged(trx) → INSERT outbox_messages
   → transaction commit → drain() → EventEmitter2.emitAsync()
   → @OnEvent() handlers (async, fire-and-forget)
 ```
+
+## Transactional outbox (external messaging)
+
+For RabbitMQ, Kafka, AWS SQS, or any external broker, the template persists every staged domain event in the `outbox_messages` table **inside the same database transaction** as the aggregate write. A background relay polls pending rows and publishes them through `IMessageBrokerPublisher`.
+
+`@OnEvent()` handlers are for **in-process** side effects only. They do not replace the outbox for cross-service delivery.
+
+### How it works
+
+| Step | When | What |
+|------|------|------|
+| Stage | Inside transaction | Events collected from aggregates into CLS |
+| Persist | Inside transaction | `OutboxService.persistStaged(trx)` inserts `pending` rows |
+| Commit | End of command | Business data and outbox rows commit atomically |
+| In-process dispatch | After commit | `EventEmitter2` handlers (unchanged) |
+| Relay | Cron (`OutboxRelayService`) | Claims batch → publishes → marks `published` |
+
+If the broker is down at commit time, rows stay `pending` and the relay retries. If the process crashes after commit, outbox rows survive and the relay publishes them later.
+
+### Migration
+
+```bash
+pnpm migration:run
+```
+
+This creates the `outbox_messages` table. See `src/database/migrations/1782000000000-OutboxMessage.ts`.
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OUTBOX_RELAY_ENABLED` | `false` | Enables the cron relay |
+| `OUTBOX_RELAY_CRON` | `*/5 * * * * *` | Cron expression (seconds supported) |
+| `OUTBOX_RELAY_BATCH_SIZE` | `50` | Max rows claimed per run |
+| `OUTBOX_RELAY_MAX_ATTEMPTS` | `5` | Retries before marking `failed` |
+
+Enable the relay in environments where a real broker adapter is registered:
+
+```env
+OUTBOX_RELAY_ENABLED=true
+```
+
+### Replace the no-op publisher
+
+`SharedModule` registers `NoOpMessageBrokerPublisher` by default (logs and succeeds). For production, provide your own adapter:
+
+```typescript
+@Injectable()
+export class RabbitMqMessageBrokerPublisher implements IMessageBrokerPublisher {
+  async publish(envelope: DomainEventEnvelope): Promise<void> {
+    await this.channel.publish(
+      'domain-events',
+      envelope.event.eventName,
+      Buffer.from(JSON.stringify(envelope)),
+    );
+  }
+}
+
+// In your module:
+{
+  provide: MESSAGE_BROKER_PUBLISHER,
+  useClass: RabbitMqMessageBrokerPublisher,
+}
+```
+
+The relay passes the full `DomainEventEnvelope` (event + actor/request/trace metadata), same shape as `@OnEvent()` handlers.
+
+### Guarantees
+
+| Topic | Behavior |
+|-------|----------|
+| Atomicity | Outbox rows commit with business data or roll back together |
+| External delivery | At-least-once (consumers must be idempotent) |
+| In-process handlers | Still fire-and-forget after commit; not durable across restarts |
+| Failed relay | Retries up to `OUTBOX_RELAY_MAX_ATTEMPTS`, then `failed` status |
 
 ## Listen from another module
 
@@ -168,12 +244,11 @@ Events are **pulled** from aggregates (`pullDomainEvents`) during staging — th
 |-------|----------|
 | Transaction timing | Events publish only after successful commit |
 | Rollback | Staged events are discarded (never drained on failure) |
-| Durability | In-process only; events are lost if the process crashes after commit |
+| In-process durability | Events are lost if the process crashes after commit (CLS is ephemeral) |
+| Outbox durability | Survives process restarts; relay delivers to external broker |
 | Handler errors | Logged; they do not fail the already-completed command |
 | HTTP response | Not blocked by handlers (fire-and-forget dispatch) |
 | Ordering | No guaranteed order between handlers of the same event |
-
-For guaranteed delivery across restarts or services, add an **outbox pattern** in a future iteration.
 
 ## Best practices
 

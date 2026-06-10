@@ -21,6 +21,10 @@ export class DomainEventStagingService {
     this.stage(collectDomainEventsFrom(result));
   }
 
+  peekStaged(): readonly IDomainEvent[] {
+    return this.cls.get<IDomainEvent[]>(CLS_DOMAIN_EVENTS) ?? [];
+  }
+
   drain(): IDomainEvent[] {
     const events = this.cls.get<IDomainEvent[]>(CLS_DOMAIN_EVENTS) ?? [];
     this.cls.set(CLS_DOMAIN_EVENTS, []);
