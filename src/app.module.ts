@@ -10,11 +10,13 @@ import { RequestIdMiddleware } from './modules/shared/infrastructure/middlewares
 import { IpAllowlistMiddleware } from './modules/shared/infrastructure/middlewares/ip-allowlist.middleware';
 import { ConditionalThrottlerGuard } from './modules/shared/infrastructure/guards/conditional-throttler.guard';
 import { HealthyModule } from './modules/healthy/healthy.module';
+import { SharedModule } from './modules/shared/shared.module';
 import { loggerOptions } from './configuration/logger';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
 
 @Module({
   imports: [
+    SharedModule,
     TypeOrmModule.forRoot(dataSourceOptions),
     LoggerModule.forRoot(loggerOptions),
     ThrottlerModule.forRoot([

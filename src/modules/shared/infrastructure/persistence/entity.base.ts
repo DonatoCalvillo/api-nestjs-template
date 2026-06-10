@@ -2,6 +2,7 @@ import {
   CreateDateColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  VersionColumn,
 } from 'typeorm';
 import { IEntity } from './entity.interface';
 
@@ -14,4 +15,7 @@ export abstract class BaseEntity implements IEntity {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
+
+  @VersionColumn()
+  version: number;
 }

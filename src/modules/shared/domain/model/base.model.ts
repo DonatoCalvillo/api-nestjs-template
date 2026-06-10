@@ -1,4 +1,8 @@
-import { DateValueObject, UUIDValueObject } from 'value-object-lib';
+import {
+  DateValueObject,
+  NonNegativeNumberValueObject,
+  UUIDValueObject,
+} from 'value-object-lib';
 import { BaseModelParams, IModel, ModelMetadata } from './model.interface';
 import { toPrimitives } from './model.utils';
 
@@ -9,12 +13,14 @@ export abstract class BaseModel<
   private readonly _id: UUIDValueObject;
   private readonly _createdAt: DateValueObject | null;
   private readonly _updatedAt: DateValueObject | null;
+  private readonly _version: NonNegativeNumberValueObject | null;
 
   constructor({
     id,
     props,
     createdAt = null,
     updatedAt = null,
+    version = null,
   }: BaseModelParams<TProps>) {
     this._id = new UUIDValueObject('id', id);
     this._createdAt = createdAt
@@ -23,6 +29,10 @@ export abstract class BaseModel<
     this._updatedAt = updatedAt
       ? new DateValueObject('updatedAt', updatedAt)
       : null;
+    this._version =
+      version !== null
+        ? new NonNegativeNumberValueObject('version', version)
+        : null;
     this.props = Object.freeze(props);
   }
 
@@ -36,6 +46,10 @@ export abstract class BaseModel<
 
   get updatedAt(): Date | null {
     return this._updatedAt?.value ?? null;
+  }
+
+  get version(): number | null {
+    return this._version?.value ?? null;
   }
 
   equals(other?: IModel): boolean {
@@ -54,6 +68,7 @@ export abstract class BaseModel<
       id: this.id,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      version: this.version,
     };
   }
 }

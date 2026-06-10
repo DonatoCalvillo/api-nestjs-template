@@ -32,7 +32,7 @@ export interface IRepository<TModel extends IModel<object>> {
   findById(id: string, options?: FindByIdOptions): Promise<TModel | null>;
   findOne(options?: QueryOptions): Promise<TModel | null>;
   findMany(options?: QueryOptions): Promise<PaginatedResult<TModel>>;
-  save(model: TModel, trx?: QueryRunner): Promise<void>;
+  save(model: TModel, trx?: QueryRunner): Promise<TModel>;
   delete(model: TModel, trx?: QueryRunner): Promise<void>;
   softDelete(model: TModel, trx?: QueryRunner): Promise<void>;
 }

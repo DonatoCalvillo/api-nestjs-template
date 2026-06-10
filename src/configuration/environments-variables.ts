@@ -28,6 +28,13 @@ interface EnvironmentVariables {
   IP_FILTER_ENABLED: boolean;
   IP_ALLOWLIST: string;
   TRUST_PROXY: boolean;
+  HTTP_RESILIENCE_ENABLED: boolean;
+  HTTP_TIMEOUT_MS: number;
+  HTTP_RETRY_MAX_ATTEMPTS: number;
+  HTTP_RETRY_DELAY_MS: number;
+  HTTP_RETRY_BACKOFF_MULTIPLIER: number;
+  HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD: number;
+  HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS: number;
 }
 
 const environmentSchema = joi
@@ -51,6 +58,13 @@ const environmentSchema = joi
     IP_FILTER_ENABLED: booleanEnv(false),
     IP_ALLOWLIST: joi.string().default('127.0.0.1,::1'),
     TRUST_PROXY: booleanEnv(false),
+    HTTP_RESILIENCE_ENABLED: booleanEnv(true),
+    HTTP_TIMEOUT_MS: joi.number().default(5000),
+    HTTP_RETRY_MAX_ATTEMPTS: joi.number().default(3),
+    HTTP_RETRY_DELAY_MS: joi.number().default(500),
+    HTTP_RETRY_BACKOFF_MULTIPLIER: joi.number().default(2),
+    HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD: joi.number().default(5),
+    HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS: joi.number().default(30000),
   })
   .unknown();
 
@@ -77,4 +91,14 @@ export const ENVIRONMENT_VARIABLES = {
   IP_FILTER_ENABLED: environmentVariables.IP_FILTER_ENABLED,
   IP_ALLOWLIST: parseCsv(environmentVariables.IP_ALLOWLIST),
   TRUST_PROXY: environmentVariables.TRUST_PROXY,
+  HTTP_RESILIENCE_ENABLED: environmentVariables.HTTP_RESILIENCE_ENABLED,
+  HTTP_TIMEOUT_MS: environmentVariables.HTTP_TIMEOUT_MS,
+  HTTP_RETRY_MAX_ATTEMPTS: environmentVariables.HTTP_RETRY_MAX_ATTEMPTS,
+  HTTP_RETRY_DELAY_MS: environmentVariables.HTTP_RETRY_DELAY_MS,
+  HTTP_RETRY_BACKOFF_MULTIPLIER:
+    environmentVariables.HTTP_RETRY_BACKOFF_MULTIPLIER,
+  HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD:
+    environmentVariables.HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+  HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS:
+    environmentVariables.HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS,
 };

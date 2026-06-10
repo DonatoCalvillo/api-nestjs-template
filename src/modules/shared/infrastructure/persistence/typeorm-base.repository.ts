@@ -3,10 +3,12 @@ import {
   DataSource,
   FindManyOptions,
   FindOneOptions,
+  OptimisticLockVersionMismatchError,
   QueryRunner,
   Repository,
 } from 'typeorm';
 import { IMapper } from '../../application/mappers';
+import { ConcurrencyConflictError } from '../../domain/errors/concurrency-conflict.error';
 import { DatabaseError } from '../../domain/errors/database';
 import { IModel } from '../../domain/model/model.interface';
 import {
@@ -62,6 +64,14 @@ export abstract class TypeOrmBaseRepository<
       : this.dataSource.getRepository(this.entityClass());
   }
 
+  private rethrowPersistenceError(error: unknown): never {
+    if (error instanceof OptimisticLockVersionMismatchError) {
+      throw new ConcurrencyConflictError();
+    }
+
+    throw new DatabaseError(error);
+  }
+
   async findById(
     id: string,
     options?: FindByIdOptions,
@@ -84,7 +94,7 @@ export abstract class TypeOrmBaseRepository<
         `Error running repository: ${this.logContext} find by id: ${id}`,
         error,
       );
-      throw new DatabaseError(error);
+      this.rethrowPersistenceError(error);
     }
   }
 
@@ -108,7 +118,7 @@ export abstract class TypeOrmBaseRepository<
         `Error running repository: ${this.logContext} find one`,
         error,
       );
-      throw new DatabaseError(error);
+      this.rethrowPersistenceError(error);
     }
   }
 
@@ -142,24 +152,25 @@ export abstract class TypeOrmBaseRepository<
         `Error running repository: ${this.logContext} find many`,
         error,
       );
-      throw new DatabaseError(error);
+      this.rethrowPersistenceError(error);
     }
   }
 
-  async save(model: TModel, trx?: QueryRunner): Promise<void> {
+  async save(model: TModel, trx?: QueryRunner): Promise<TModel> {
     this.logger.log(`Running repository: ${this.logContext} save`);
     this.logger.debug(`Model: ${JSON.stringify(model)}`);
     try {
       const repo = this.getRepoForTrx(trx);
       const entity = this.mapper.toPersistence(model);
-      await repo.save(entity);
+      const savedEntity = await repo.save(entity);
       this.logger.log(`Repository: ${this.logContext} save completed`);
+      return this.mapper.toModel(savedEntity);
     } catch (error) {
       this.logger.error(
         `Error running repository: ${this.logContext} save`,
         error,
       );
-      throw new DatabaseError(error);
+      this.rethrowPersistenceError(error);
     }
   }
 
@@ -169,6 +180,21 @@ export abstract class TypeOrmBaseRepository<
     try {
       const repo = this.getRepoForTrx(trx);
       const entity = this.mapper.toPersistence(model);
+
+      if (model.version !== null) {
+        const result = await repo.delete({
+          id: entity.id,
+          version: entity.version,
+        } as Parameters<Repository<TEntity>['delete']>[0]);
+
+        if (!result.affected) {
+          throw new ConcurrencyConflictError(entity.id);
+        }
+
+        this.logger.log(`Repository: ${this.logContext} delete completed`);
+        return;
+      }
+
       await repo.remove(entity);
       this.logger.log(`Repository: ${this.logContext} delete completed`);
     } catch (error) {
@@ -176,7 +202,12 @@ export abstract class TypeOrmBaseRepository<
         `Error running repository: ${this.logContext} delete`,
         error,
       );
-      throw new DatabaseError(error);
+
+      if (error instanceof ConcurrencyConflictError) {
+        throw error;
+      }
+
+      this.rethrowPersistenceError(error);
     }
   }
 
@@ -186,6 +217,20 @@ export abstract class TypeOrmBaseRepository<
     try {
       const repo = this.getRepoForTrx(trx);
       const entity = this.mapper.toPersistence(model);
+
+      if (model.version !== null && typeof repo.softDelete === 'function') {
+        const result = await repo.softDelete({
+          id: entity.id,
+          version: entity.version,
+        } as Parameters<Repository<TEntity>['softDelete']>[0]);
+
+        if (!result.affected) {
+          throw new ConcurrencyConflictError(entity.id);
+        }
+
+        this.logger.log(`Repository: ${this.logContext} soft delete completed`);
+        return;
+      }
 
       if (typeof repo.softRemove === 'function') {
         await repo.softRemove(entity);
@@ -209,7 +254,12 @@ export abstract class TypeOrmBaseRepository<
         `Error running repository: ${this.logContext} soft delete`,
         error,
       );
-      throw new DatabaseError(error);
+
+      if (error instanceof ConcurrencyConflictError) {
+        throw error;
+      }
+
+      this.rethrowPersistenceError(error);
     }
   }
 }

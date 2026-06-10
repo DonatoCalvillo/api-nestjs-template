@@ -32,7 +32,7 @@ Inspired by projects of very important and knowledgeable people in the field suc
 
 ## 🏛️ TypeORM Entities
 
-Persistence entities live in the infrastructure layer and extend `BaseEntity` from `src/modules/shared/infrastructure/persistence/entity.base.ts`. The base class provides a UUID primary key and audit timestamps managed by TypeORM.
+Persistence entities live in the infrastructure layer and extend `BaseEntity` from `src/modules/shared/infrastructure/persistence/entity.base.ts`. The base class provides a UUID primary key, audit timestamps, and an optimistic-locking version column managed by TypeORM.
 
 ### What is included
 
@@ -43,8 +43,9 @@ Persistence entities live in the infrastructure layer and extend `BaseEntity` fr
 | `id` | UUID primary key | `@PrimaryGeneratedColumn('uuid')` |
 | `createdAt` | Creation timestamp | `@CreateDateColumn({ type: 'timestamptz' })` |
 | `updatedAt` | Last update timestamp | `@UpdateDateColumn({ type: 'timestamptz' })` |
+| `version` | Optimistic-lock version | `@VersionColumn()` |
 
-`createdAt` and `updatedAt` are set automatically on insert and update. You do not need to assign them manually.
+`createdAt` and `updatedAt` are set automatically on insert and update. `version` starts at `1` on insert and increments on each update. You do not need to assign these fields manually on new records.
 
 ### Recommended folder structure
 
@@ -94,12 +95,12 @@ Domain models represent business logic in the domain layer using [`value-object-
 
 | Export | Description |
 |--------|-------------|
-| `IModel` | Contract for domain models (`id`, timestamps, `equals`, `toJSON`) |
+| `IModel` | Contract for domain models (`id`, timestamps, `version`, `equals`, `toJSON`) |
 | `BaseModel` | Abstract base class with validated `id` and optional audit fields |
-| `BaseModelParams` | Constructor params: `id`, `props`, `createdAt?`, `updatedAt?` |
+| `BaseModelParams` | Constructor params: `id`, `props`, `createdAt?`, `updatedAt?`, `version?` |
 | `toPrimitives` | Utility to serialize nested value objects to plain values |
 
-`BaseModel` validates the `id` as a UUID and optional dates via `UUIDValueObject` and `DateValueObject`. Invalid values throw a `ValueObjectValidationError` at construction time.
+`BaseModel` validates the `id` as a UUID, optional dates via `DateValueObject`, and optional `version` via `NonNegativeNumberValueObject`. Invalid values throw a `ValueObjectValidationError` at construction time. Use `version: null` (default) for new aggregates not yet persisted.
 
 ### Recommended folder structure
 
@@ -178,7 +179,7 @@ const user = new UserModel({
 });
 ```
 
-`createdAt` and `updatedAt` are optional and default to `null`. When provided, they are validated as dates.
+`createdAt`, `updatedAt`, and `version` are optional and default to `null`. When provided, dates and version are validated.
 
 ### Step 4 — Compare and serialize
 
@@ -194,6 +195,7 @@ user.toJSON();
 //   id: '3f2504e0-4f89-11d3-9a0c-0305e82c3301',
 //   createdAt: Date,
 //   updatedAt: null,
+//   version: null,
 // }
 ```
 
@@ -265,6 +267,7 @@ export class UserMapper implements IMapper<UserModel, UserEntity> {
       },
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      version: entity.version,
     });
   }
 
@@ -276,6 +279,10 @@ export class UserMapper implements IMapper<UserModel, UserEntity> {
     entity.email = model.email;
     entity.createdAt = model.createdAt ?? new Date();
     entity.updatedAt = model.updatedAt ?? new Date();
+
+    if (model.version !== null) {
+      entity.version = model.version;
+    }
 
     return entity;
   }
@@ -314,7 +321,8 @@ Extend `TypeOrmBaseRepository` to inherit CRUD operations. The base class uses `
 |--------|-------------|
 | `TypeOrmBaseRepository` | Abstract base with `findById`, `findOne`, `findMany`, `save`, `delete`, `softDelete` |
 | `SoftDeletableEntity` | Optional base entity with `@DeleteDateColumn` for soft delete support |
-| `BaseEntity` / `IEntity` | Standard entity contract with UUID and timestamps |
+| `BaseEntity` / `IEntity` | Standard entity contract with UUID, timestamps, and `version` |
+| `ConcurrencyConflictError` | Domain error mapped to HTTP 409 when optimistic locking fails |
 
 **Domain port** (`src/modules/shared/domain/repositories/`):
 
@@ -376,6 +384,28 @@ const { items, total } = await this.userRepository.findMany({
 
 **Soft delete:** extend `SoftDeletableEntity` instead of `BaseEntity` on entities that support it, then call `softDelete(model)`. Use `delete(model)` for hard deletes that permanently remove the row.
 
+**Optimistic locking:** when updating a record, load it from the database, modify the domain model, and pass the loaded `version` into `save`. The repository returns the saved model with the incremented version:
+
+```typescript
+const user = await this.userRepository.findById(id);
+if (!user) return Result.fail(new NotFoundError());
+
+const updated = new UserModel({
+  id: user.id,
+  props: { /* modified props */ },
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+  version: user.version,
+});
+
+const saved = await this.userRepository.save(updated, trx);
+// saved.version is now user.version + 1
+```
+
+If two requests update the same row concurrently, TypeORM detects the version mismatch and the repository throws `ConcurrencyConflictError` (HTTP 409, code `E-CONCURRENCY`). The client should reload the record and retry.
+
+Include `version` in update API payloads so the client sends back the value it read. For creates, omit `version` and let TypeORM initialize it.
+
 ### Data flow
 
 ```
@@ -408,6 +438,57 @@ Copy the security block from `example.env` into your `.env` file.
 **IP filtering:** Allowlist mode — only listed IPs can access the API when `IP_FILTER_ENABLED=true`. Set `TRUST_PROXY=true` when running behind a reverse proxy or load balancer.
 
 **Health check:** `GET /healthy` is exempt from rate limiting and IP filtering for probes from orchestrators and load balancers.
+
+## 🛡️ HTTP Resilience
+
+Cuando tu API consume microservicios o APIs de terceros, una caída externa no debe tumbar tu backend. El template incluye una capa de resiliencia basada en [`nestjs-resilience`](https://www.npmjs.com/package/nestjs-resilience) (retry, timeout, circuit breaker) y `@nestjs/axios`.
+
+### Qué incluye
+
+| Pieza | Ubicación | Descripción |
+|-------|-----------|-------------|
+| `IHttpClient` | `src/modules/shared/application/ports/http-client.port.ts` | Port para llamadas HTTP salientes |
+| `ResilientHttpClient` | `src/modules/shared/infrastructure/http/` | Adapter con políticas de resiliencia |
+| `ResiliencePolicyFactory` | `src/modules/shared/infrastructure/http/` | Construye timeout → retry → circuit breaker |
+| Errores de dominio | `src/modules/shared/domain/errors/external-service.error.ts` | `ExternalServiceError`, `CircuitBreakerOpenError` |
+
+`SharedModule` expone globalmente `HTTP_CLIENT`. Inyéctalo en gateways de cada feature module.
+
+### Variables de entorno
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `HTTP_RESILIENCE_ENABLED` | `true` | Activa/desactiva políticas |
+| `HTTP_TIMEOUT_MS` | `5000` | Timeout por request (ms) |
+| `HTTP_RETRY_MAX_ATTEMPTS` | `3` | Reintentos máximos |
+| `HTTP_RETRY_DELAY_MS` | `500` | Delay inicial entre reintentos |
+| `HTTP_RETRY_BACKOFF_MULTIPLIER` | `2` | Multiplicador exponencial |
+| `HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD` | `5` | Fallos para abrir circuito |
+| `HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS` | `30000` | Tiempo en estado abierto (ms) |
+
+Copia el bloque de `example.env` en tu `.env`.
+
+### Uso rápido
+
+```typescript
+import { Inject, Injectable } from '@nestjs/common';
+import { HTTP_CLIENT, IHttpClient } from '../shared/application';
+
+@Injectable()
+export class PaymentGateway {
+  constructor(@Inject(HTTP_CLIENT) private readonly http: IHttpClient) {}
+
+  charge(orderId: string, amount: number) {
+    return this.http.post<{ transactionId: string }>(
+      `${process.env.PAYMENT_API_URL}/charges`,
+      { orderId, amount },
+      { circuitBreakerKey: 'payment-api' },
+    );
+  }
+}
+```
+
+Guía completa con degradación graceful, convenciones de retry e idempotencia, y troubleshooting: **[docs/http-resilience.md](docs/http-resilience.md)**.
 
 ## 🧑‍💻 Developing
 
