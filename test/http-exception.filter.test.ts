@@ -57,7 +57,7 @@ describe('HttpExceptionFilter', () => {
       }),
     }) as unknown as ArgumentsHost;
 
-  it('logs request.path without query string on errors', () => {
+  it('does not log domain errors because BaseController already logged them', () => {
     filter.catch(new InvalidCredentialsError(), {
       switchToHttp: () => ({
         getRequest: () => ({
@@ -70,8 +70,18 @@ describe('HttpExceptionFilter', () => {
       }),
     } as unknown as ArgumentsHost);
 
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs unexpected errors with errorCode and request path', () => {
+    filter.catch(new BadRequestException('bad input'), createHost('/items'));
+
     expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ path: '/api/v1/auth/login' }),
+      expect.objectContaining({
+        path: '/items',
+        errorCode: expect.any(String),
+        requestId: 'req-1',
+      }),
       expect.any(String),
     );
   });

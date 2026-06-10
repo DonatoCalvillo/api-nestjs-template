@@ -51,6 +51,11 @@ import {
   ResiliencePolicyFactory,
   ResilientHttpClient,
 } from './infrastructure/http';
+import {
+  BUSINESS_METRICS,
+  MetricsModule,
+  NoOpBusinessMetricsService,
+} from './infrastructure/metrics';
 import { TypeOrmTransactionManager } from './infrastructure/persistence/typeorm-transaction-manager.service';
 import { TraceContextService } from './infrastructure/tracing';
 
@@ -69,6 +74,7 @@ import { TraceContextService } from './infrastructure/tracing';
       OutboxMessageEntity,
       IdempotencyKeyEntity,
     ]),
+    ...(ENVIRONMENT_VARIABLES.METRICS_ENABLED ? [MetricsModule] : []),
   ],
   providers: [
     ShutdownService,
@@ -133,6 +139,14 @@ import { TraceContextService } from './infrastructure/tracing';
       useExisting: TypeOrmIdempotencyRepository,
     },
     IdempotencyCleanupService,
+    ...(ENVIRONMENT_VARIABLES.METRICS_ENABLED
+      ? []
+      : [
+          {
+            provide: BUSINESS_METRICS,
+            useClass: NoOpBusinessMetricsService,
+          },
+        ]),
   ],
   exports: [
     TRANSACTION_MANAGER,

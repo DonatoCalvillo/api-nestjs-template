@@ -67,4 +67,29 @@ describe('TypeOrmOutboxRepository (integration)', () => {
       payload: { email: 'user@example.com' },
     });
   });
+
+  it('counts outbox messages by status', async () => {
+    await repository.insertMany([
+      {
+        eventName: 'UserRegistered',
+        aggregateType: 'User',
+        aggregateId: 'user-1',
+        payload: { email: 'user@example.com' },
+        status: OutboxMessageStatus.Pending,
+      },
+      {
+        eventName: 'UserRegistered',
+        aggregateType: 'User',
+        aggregateId: 'user-2',
+        payload: { email: 'other@example.com' },
+        status: OutboxMessageStatus.Failed,
+      },
+    ]);
+
+    expect(await repository.countByStatus(OutboxMessageStatus.Pending)).toBe(1);
+    expect(await repository.countByStatus(OutboxMessageStatus.Failed)).toBe(1);
+    expect(await repository.countByStatus(OutboxMessageStatus.Processing)).toBe(
+      0,
+    );
+  });
 });

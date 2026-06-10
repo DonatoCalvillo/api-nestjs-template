@@ -10,10 +10,15 @@ import {
   MESSAGE_BROKER_PUBLISHER,
   OUTBOX_REPOSITORY,
 } from '../../application/outbox/outbox.constants';
+import { OutboxMessageStatus } from '../../application/outbox/outbox-message.status';
 import { IMessageBrokerPublisher } from '../../application/outbox/ports/message-broker.publisher.port';
 import { IOutboxRepository } from '../../application/outbox/ports/outbox.repository.port';
 import { ShutdownStateService } from '../../../../configuration/shutdown/shutdown-state.service';
 import { OUTBOX_RELAY_LOCK_KEY } from '../locking/locking.constants';
+import {
+  BUSINESS_METRICS,
+  IBusinessMetrics,
+} from '../metrics/business-metrics.port';
 
 @Injectable()
 export class OutboxRelayService {
@@ -28,6 +33,8 @@ export class OutboxRelayService {
     @Inject(DISTRIBUTED_LOCK)
     private readonly distributedLock: IDistributedLock,
     private readonly shutdownState: ShutdownStateService,
+    @Inject(BUSINESS_METRICS)
+    private readonly businessMetrics: IBusinessMetrics,
   ) {}
 
   async waitForIdle(maxWaitMs: number): Promise<void> {
@@ -85,6 +92,8 @@ export class OutboxRelayService {
 
   private async processBatch(): Promise<void> {
     try {
+      await this.refreshOutboxPendingMetrics();
+
       const batch = await this.outboxRepository.claimPendingBatch(
         ENVIRONMENT_VARIABLES.OUTBOX_RELAY_BATCH_SIZE,
       );
@@ -112,6 +121,7 @@ export class OutboxRelayService {
               errorMessage,
               nextAttempts,
             );
+            this.businessMetrics.recordOutboxFailed(message.eventName);
             this.logger.error(
               {
                 err: error instanceof Error ? error : new Error(errorMessage),
@@ -143,6 +153,12 @@ export class OutboxRelayService {
 
       if (publishedIds.length > 0) {
         await this.outboxRepository.markPublished(publishedIds);
+
+        for (const message of batch) {
+          if (publishedIds.includes(message.id)) {
+            this.businessMetrics.recordOutboxPublished(message.eventName);
+          }
+        }
       }
     } catch (error) {
       this.logger.error(
@@ -152,5 +168,20 @@ export class OutboxRelayService {
         'Outbox relay batch failed',
       );
     }
+  }
+
+  private async refreshOutboxPendingMetrics(): Promise<void> {
+    const statuses = [
+      OutboxMessageStatus.Pending,
+      OutboxMessageStatus.Processing,
+      OutboxMessageStatus.Failed,
+    ] as const;
+
+    await Promise.all(
+      statuses.map(async (status) => {
+        const count = await this.outboxRepository.countByStatus(status);
+        this.businessMetrics.setOutboxPending(status, count);
+      }),
+    );
   }
 }

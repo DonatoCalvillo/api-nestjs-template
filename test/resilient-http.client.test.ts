@@ -14,6 +14,9 @@ import {
   ResiliencePolicyFactory,
   ResilientHttpClient,
 } from '../src/modules/shared/infrastructure/http';
+import { ActorContextService } from '../src/modules/shared/infrastructure/audit/actor-context.service';
+import { BUSINESS_METRICS } from '../src/modules/shared/infrastructure/metrics/business-metrics.port';
+import { NoOpBusinessMetricsService } from '../src/modules/shared/infrastructure/metrics/noop-business-metrics.service';
 import { TraceContextService } from '../src/modules/shared/infrastructure/tracing/trace-context.service';
 
 describe('ResilientHttpClient', () => {
@@ -49,6 +52,16 @@ describe('ResilientHttpClient', () => {
             attachToRequest: jest.fn(),
             setResponseHeaders: jest.fn(),
           },
+        },
+        {
+          provide: ActorContextService,
+          useValue: {
+            getRequestId: jest.fn().mockReturnValue('req-correlation-1'),
+          },
+        },
+        {
+          provide: BUSINESS_METRICS,
+          useClass: NoOpBusinessMetricsService,
         },
         {
           provide: HTTP_CLIENT,
@@ -119,6 +132,33 @@ describe('ResilientHttpClient', () => {
         traceparent: `00-${'a'.repeat(32)}-${'b'.repeat(16)}-01`,
       }),
     );
+  });
+
+  it('injects x-request-id from actor context on outbound requests', async () => {
+    httpService.request.mockReturnValue(of(axiosResponse({ ok: true })));
+
+    await client.get('https://payment-api.example.com/status', {
+      circuitBreakerKey: 'payment-api',
+    });
+
+    const requestConfig = httpService.request.mock.calls[0][0];
+    expect(requestConfig.headers).toEqual(
+      expect.objectContaining({
+        'x-request-id': 'req-correlation-1',
+      }),
+    );
+  });
+
+  it('preserves explicit x-request-id header from caller', async () => {
+    httpService.request.mockReturnValue(of(axiosResponse({ ok: true })));
+
+    await client.get('https://payment-api.example.com/status', {
+      circuitBreakerKey: 'payment-api',
+      headers: { 'x-request-id': 'caller-request-id' },
+    });
+
+    const requestConfig = httpService.request.mock.calls[0][0];
+    expect(requestConfig.headers['x-request-id']).toBe('caller-request-id');
   });
 
   it('retries transient failures for idempotent GET requests', async () => {

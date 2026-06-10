@@ -1,5 +1,6 @@
 import { QueryRunner } from 'typeorm';
 import { OutboxMessageEntry } from '../outbox-message.entry';
+import { OutboxMessageStatus } from '../outbox-message.status';
 
 export type ClaimedOutboxMessage = {
   id: string;
@@ -16,4 +17,5 @@ export interface IOutboxRepository {
   markPublished(ids: string[]): Promise<void>;
   markFailed(id: string, error: string, attempts: number): Promise<void>;
   resetToPending(id: string, error: string, attempts: number): Promise<void>;
+  countByStatus(status: OutboxMessageStatus): Promise<number>;
 }

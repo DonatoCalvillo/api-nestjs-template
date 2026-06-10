@@ -114,7 +114,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request & RequestWithTrace>();
     const response = ctx.getResponse<Response>();
 
+    let isDomainError = false;
+
     if (exception instanceof DomainError) {
+      isDomainError = true;
       exception = exception.toHttpException();
     }
 
@@ -147,18 +150,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     setResponseTraceHeaders(response, meta, this.traceContext);
 
-    this.logger.error(
-      {
-        err: exception,
-        statusCode: status,
-        method: request.method,
-        path: request.path,
-        traceId: meta.traceId,
-        spanId: meta.spanId,
-        requestId: meta.requestId,
-      },
-      responseBody.message,
-    );
+    if (!isDomainError) {
+      this.logger.error(
+        {
+          err: exception,
+          statusCode: status,
+          method: request.method,
+          path: request.path,
+          errorCode: responseBody.code,
+          traceId: meta.traceId,
+          spanId: meta.spanId,
+          requestId: meta.requestId,
+        },
+        responseBody.message,
+      );
+    }
 
     response.status(status).json(responseBody);
   }

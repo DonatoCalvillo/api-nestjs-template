@@ -2,7 +2,7 @@ allowBuilds:
   '@nestjs/core': true
   '@scarf/scarf': true
   bcrypt: true
-  cpu-features: set this to true or false
+  cpu-features: false
   protobufjs: true
-  ssh2: set this to true or false
+  ssh2: false
   unrs-resolver: true

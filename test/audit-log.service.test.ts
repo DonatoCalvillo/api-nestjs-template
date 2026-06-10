@@ -3,6 +3,7 @@ import { AuditLog } from '../src/modules/shared/application/audit/audit-log.deco
 import { AuditLogService } from '../src/modules/shared/application/audit/audit-log.service';
 import { IAuditLogRepository } from '../src/modules/shared/application/audit/ports/audit-log.repository.port';
 import { ActorContextService } from '../src/modules/shared/infrastructure/audit/actor-context.service';
+import { NoOpBusinessMetricsService } from '../src/modules/shared/infrastructure/metrics/noop-business-metrics.service';
 import { TraceContextService } from '../src/modules/shared/infrastructure/tracing/trace-context.service';
 
 @AuditLog({
@@ -45,6 +46,7 @@ describe('AuditLogService', () => {
       repository,
       actorContext,
       traceContext,
+      new NoOpBusinessMetricsService(),
     );
   });
 

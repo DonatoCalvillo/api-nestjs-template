@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { context, propagation, defaultTextMapSetter } from '@opentelemetry/api';
 import { AxiosError } from 'axios';
 import { PinoLogger } from 'nestjs-pino';
@@ -20,6 +20,12 @@ import {
   CircuitBreakerOpenError,
   ExternalServiceError,
 } from '../../domain/errors/external-service.error';
+import { ActorContextService } from '../audit/actor-context.service';
+import {
+  BUSINESS_METRICS,
+  IBusinessMetrics,
+} from '../metrics/business-metrics.port';
+import { REQUEST_ID_HEADER } from '../request-context';
 import { TRACEPARENT_HEADER } from '../tracing/trace-context.constants';
 import { TraceContextService } from '../tracing/trace-context.service';
 import { ResiliencePolicyFactory } from './resilience-policy.factory';
@@ -47,6 +53,9 @@ export class ResilientHttpClient implements IHttpClient {
     private readonly httpService: HttpService,
     private readonly policyFactory: ResiliencePolicyFactory,
     private readonly traceContext: TraceContextService,
+    private readonly actorContext: ActorContextService,
+    @Inject(BUSINESS_METRICS)
+    private readonly businessMetrics: IBusinessMetrics,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(ResilientHttpClient.name);
@@ -74,7 +83,9 @@ export class ResilientHttpClient implements IHttpClient {
 
     if (!getHttpResilienceConfig().enabled) {
       try {
-        return await execute();
+        const result = await execute();
+        this.businessMetrics.recordCircuitClosed(circuitBreakerKey);
+        return result;
       } catch (error) {
         throw this.mapError(error, circuitBreakerKey);
       }
@@ -91,7 +102,9 @@ export class ResilientHttpClient implements IHttpClient {
         execute,
       );
 
-      return (await command.execute()) as T;
+      const result = (await command.execute()) as T;
+      this.businessMetrics.recordCircuitClosed(circuitBreakerKey);
+      return result;
     } catch (error) {
       throw this.mapError(error, circuitBreakerKey);
     }
@@ -130,6 +143,12 @@ export class ResilientHttpClient implements IHttpClient {
       headers[TRACEPARENT_HEADER] = traceparent;
     }
 
+    const requestId = this.actorContext.getRequestId();
+
+    if (requestId && !headers[REQUEST_ID_HEADER]) {
+      headers[REQUEST_ID_HEADER] = requestId;
+    }
+
     const response = await firstValueFrom(
       this.httpService.request<T>({
         url: options.url,
@@ -163,6 +182,7 @@ export class ResilientHttpClient implements IHttpClient {
     }
 
     if (error instanceof CircuitOpenedException) {
+      this.businessMetrics.recordCircuitOpen(circuitBreakerKey);
       this.logger.warn(
         { circuitBreakerKey },
         'Circuit breaker is open for external service',

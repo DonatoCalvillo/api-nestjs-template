@@ -1,7 +1,9 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiExtraModels, ApiTags } from '@nestjs/swagger';
 import { PinoLogger } from 'nestjs-pino';
+import { ActorContextService } from '../../../shared/infrastructure/audit/actor-context.service';
 import { BaseController } from '../../../shared/infrastructure/controllers/base.controller';
+import { TraceContextService } from '../../../shared/infrastructure/tracing/trace-context.service';
 import {
   ApiOkResponseEnvelope,
   ApiStandardErrorResponses,
@@ -26,12 +28,14 @@ import { TokenResponseDto } from './dtos/token-response.dto';
 export class AuthController extends BaseController {
   constructor(
     logger: PinoLogger,
+    actorContext: ActorContextService,
+    traceContext: TraceContextService,
     private readonly loginUseCase: LoginUseCase,
     private readonly registerUserUseCase: RegisterUserUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
   ) {
-    super(logger);
+    super(logger, actorContext, traceContext);
   }
 
   @Public()

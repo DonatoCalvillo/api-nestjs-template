@@ -1,8 +1,15 @@
 import { PinoLogger } from 'nestjs-pino';
 import { IUseCase, Result } from '../../application';
+import { DomainError } from '../../domain/errors/error';
+import { ActorContextService } from '../audit/actor-context.service';
+import { TraceContextService } from '../tracing/trace-context.service';
 
 export abstract class BaseController {
-  constructor(protected readonly logger: PinoLogger) {
+  constructor(
+    protected readonly logger: PinoLogger,
+    protected readonly actorContext: ActorContextService,
+    protected readonly traceContext: TraceContextService,
+  ) {
     this.logger.setContext(this.constructor.name);
   }
 
@@ -32,8 +39,18 @@ export abstract class BaseController {
   }
 
   protected logDomainFailure(error: unknown): void {
+    const err = error instanceof Error ? error : new Error(String(error));
+
     this.logger.warn(
-      { err: error instanceof Error ? error : new Error(String(error)) },
+      {
+        event: 'domain_failure',
+        err,
+        errorCode: error instanceof DomainError ? error.code : undefined,
+        httpStatus: error instanceof DomainError ? error.httpStatus : undefined,
+        requestId: this.actorContext.getRequestId(),
+        traceId: this.traceContext.getTraceId(),
+        spanId: this.traceContext.getSpanId(),
+      },
       `${this.constructor.name} received domain failure`,
     );
   }

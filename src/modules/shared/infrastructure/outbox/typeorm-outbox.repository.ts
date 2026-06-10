@@ -122,4 +122,10 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
       .where('id = :id', { id })
       .execute();
   }
+
+  async countByStatus(status: OutboxMessageStatus): Promise<number> {
+    return this.dataSource.getRepository(OutboxMessageEntity).count({
+      where: { status },
+    });
+  }
 }

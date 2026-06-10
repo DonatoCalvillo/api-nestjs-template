@@ -2,6 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { QueryRunner } from 'typeorm';
 import { ActorContextService } from '../../infrastructure/audit/actor-context.service';
+import {
+  BUSINESS_METRICS,
+  IBusinessMetrics,
+} from '../../infrastructure/metrics/business-metrics.port';
 import { TraceContextService } from '../../infrastructure/tracing/trace-context.service';
 import type { CommandUseCase } from '../use-cases/command.use-case';
 import { UseCaseContext } from '../use-cases/use-case.context';
@@ -22,6 +26,8 @@ export class AuditLogService {
     private readonly auditLogRepository: IAuditLogRepository,
     private readonly actorContext: ActorContextService,
     private readonly traceContext: TraceContextService,
+    @Inject(BUSINESS_METRICS)
+    private readonly businessMetrics: IBusinessMetrics,
   ) {}
 
   getOptions(useCase: object): AuditLogOptions<unknown, unknown> | undefined {
@@ -64,23 +70,34 @@ export class AuditLogService {
     const sanitizedBefore = sanitizeAuditState(beforeState);
     const sanitizedAfter = sanitizeAuditState(afterState);
 
-    await this.auditLogRepository.save(
-      {
-        actorId: captureContext.actor.actorId,
-        actorType: captureContext.actor.actorType,
-        action: options.action,
-        entityType: options.entityType,
-        entityId: options.entityId?.(command) ?? null,
-        beforeState: toAuditRecord(sanitizedBefore),
-        afterState: toAuditRecord(sanitizedAfter),
-        changes: computeAuditDiff(sanitizedBefore, sanitizedAfter),
-        requestId: captureContext.requestId ?? null,
-        traceId: captureContext.traceId ?? null,
-        ipAddress: captureContext.ipAddress ?? null,
-        useCaseName: useCase.constructor.name,
-      },
-      context?.trx,
-    );
+    try {
+      await this.auditLogRepository.save(
+        {
+          actorId: captureContext.actor.actorId,
+          actorType: captureContext.actor.actorType,
+          action: options.action,
+          entityType: options.entityType,
+          entityId: options.entityId?.(command) ?? null,
+          beforeState: toAuditRecord(sanitizedBefore),
+          afterState: toAuditRecord(sanitizedAfter),
+          changes: computeAuditDiff(sanitizedBefore, sanitizedAfter),
+          requestId: captureContext.requestId ?? null,
+          traceId: captureContext.traceId ?? null,
+          ipAddress: captureContext.ipAddress ?? null,
+          useCaseName: useCase.constructor.name,
+        },
+        context?.trx,
+      );
+
+      this.businessMetrics.recordAuditWrite(
+        options.action,
+        options.entityType,
+        captureContext.actor.actorType,
+      );
+    } catch (error) {
+      this.businessMetrics.recordAuditWriteError();
+      throw error;
+    }
 
     return result;
   }
