@@ -11,6 +11,15 @@ export const setupSwagger = (app: INestApplication): void => {
     .setTitle('Dodo Schedule API')
     .setDescription('REST API documentation')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+      },
+      'access-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

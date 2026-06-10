@@ -165,13 +165,25 @@ Use `trx` when loading before/after state so reads participate in the same trans
 
 ## Actor context (who)
 
-The template does not include authentication yet. By default, every request is recorded with:
+Unauthenticated requests are recorded with:
 
 ```typescript
 { actorId: null, actorType: 'anonymous' }
 ```
 
-When you add auth, set the actor from a guard:
+The global `JwtAuthGuard` sets the actor after validating the JWT and loading roles from the database:
+
+```typescript
+this.actorContext.setActor({
+  actorId: user.id,
+  actorType: 'user',
+  displayName: user.email,
+});
+```
+
+Public routes (`@Public()`, `/healthy`, `/metrics`) skip authentication and keep the anonymous actor.
+
+Reference implementation in `src/modules/auth/infrastructure/guards/jwt-auth.guard.ts`. When extending auth, set the actor from a guard:
 
 ```typescript
 @Injectable()

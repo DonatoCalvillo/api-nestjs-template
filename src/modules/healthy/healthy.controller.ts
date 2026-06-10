@@ -11,7 +11,9 @@ import {
 import { Request } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 import { ENVIRONMENT_VARIABLES } from '../../configuration/environments-variables';
+import { Public } from '../auth/infrastructure/decorators/public.decorator';
 
+@Public()
 @SkipThrottle()
 @Controller('healthy')
 export class HealthyController {

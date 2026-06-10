@@ -47,6 +47,11 @@ interface EnvironmentVariables {
   OUTBOX_RELAY_BATCH_SIZE: number;
   OUTBOX_RELAY_MAX_ATTEMPTS: number;
   SWAGGER_ENABLED: boolean;
+  JWT_ACCESS_SECRET: string;
+  JWT_REFRESH_SECRET: string;
+  JWT_ACCESS_EXPIRES_IN: string;
+  JWT_REFRESH_EXPIRES_IN: string;
+  BCRYPT_ROUNDS: number;
 }
 
 const environmentSchema = joi
@@ -91,6 +96,23 @@ const environmentSchema = joi
     OUTBOX_RELAY_BATCH_SIZE: joi.number().min(1).default(50),
     OUTBOX_RELAY_MAX_ATTEMPTS: joi.number().min(1).default(5),
     SWAGGER_ENABLED: booleanEnv(process.env.NODE_ENV === 'development'),
+    JWT_ACCESS_SECRET: joi.string().when('NODE_ENV', {
+      is: 'production',
+      then: joi.string().min(32).required(),
+      otherwise: joi
+        .string()
+        .default('dev-access-secret-change-in-production-32chars'),
+    }),
+    JWT_REFRESH_SECRET: joi.string().when('NODE_ENV', {
+      is: 'production',
+      then: joi.string().min(32).required(),
+      otherwise: joi
+        .string()
+        .default('dev-refresh-secret-change-in-production-32chars'),
+    }),
+    JWT_ACCESS_EXPIRES_IN: joi.string().default('15m'),
+    JWT_REFRESH_EXPIRES_IN: joi.string().default('7d'),
+    BCRYPT_ROUNDS: joi.number().min(10).max(15).default(12),
   })
   .unknown();
 
@@ -140,4 +162,9 @@ export const ENVIRONMENT_VARIABLES = {
   OUTBOX_RELAY_BATCH_SIZE: environmentVariables.OUTBOX_RELAY_BATCH_SIZE,
   OUTBOX_RELAY_MAX_ATTEMPTS: environmentVariables.OUTBOX_RELAY_MAX_ATTEMPTS,
   SWAGGER_ENABLED: environmentVariables.SWAGGER_ENABLED,
+  JWT_ACCESS_SECRET: environmentVariables.JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET: environmentVariables.JWT_REFRESH_SECRET,
+  JWT_ACCESS_EXPIRES_IN: environmentVariables.JWT_ACCESS_EXPIRES_IN,
+  JWT_REFRESH_EXPIRES_IN: environmentVariables.JWT_REFRESH_EXPIRES_IN,
+  BCRYPT_ROUNDS: environmentVariables.BCRYPT_ROUNDS,
 };

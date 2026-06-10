@@ -11,8 +11,13 @@ import { RequestContextMiddleware } from './modules/shared/infrastructure/audit/
 import { RequestIdMiddleware } from './modules/shared/infrastructure/middlewares/request-id.middleware';
 import { IpAllowlistMiddleware } from './modules/shared/infrastructure/middlewares/ip-allowlist.middleware';
 import { ConditionalThrottlerGuard } from './modules/shared/infrastructure/guards/conditional-throttler.guard';
+import { AuthModule } from './modules/auth/auth.module';
 import { HealthyModule } from './modules/healthy/healthy.module';
 import { SharedModule } from './modules/shared/shared.module';
+import { UsersModule } from './modules/users/users.module';
+import { JwtAuthGuard } from './modules/auth/infrastructure/guards/jwt-auth.guard';
+import { PermissionsGuard } from './modules/auth/infrastructure/guards/permissions.guard';
+import { RolesGuard } from './modules/auth/infrastructure/guards/roles.guard';
 import { loggerOptions } from './configuration/logger';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
 import { HttpExceptionFilter } from './modules/shared/infrastructure/filters/http-exception.filter';
@@ -35,11 +40,25 @@ import { MetricsModule } from './modules/shared/infrastructure/metrics';
       },
     ]),
     HealthyModule,
+    UsersModule,
+    AuthModule,
     ...(ENVIRONMENT_VARIABLES.METRICS_ENABLED ? [MetricsModule] : []),
   ],
   controllers: [],
   providers: [
     RequestContextMiddleware,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: ConditionalThrottlerGuard,
