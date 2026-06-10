@@ -25,3 +25,5 @@ process.env.OTEL_TRACES_ENABLED = 'false';
 process.env.OTEL_SERVICE_NAME = 'dodo-schedule-api-test';
 process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4318/v1/traces';
 process.env.METRICS_ENABLED = 'false';
+process.env.HEALTH_DISK_PATH = '/';
+process.env.HEALTH_DISK_THRESHOLD_PERCENT = '0.9';

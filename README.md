@@ -437,7 +437,7 @@ Copy the security block from `example.env` into your `.env` file.
 
 **IP filtering:** Allowlist mode — only listed IPs can access the API when `IP_FILTER_ENABLED=true`. Set `TRUST_PROXY=true` when running behind a reverse proxy or load balancer.
 
-**Health check:** `GET /healthy` is exempt from rate limiting and IP filtering for probes from orchestrators and load balancers.
+**Health check:** `GET /healthy` runs active Terminus checks (PostgreSQL, disk storage, and OTLP collector when tracing is enabled). Returns JSON with `status: "ok"` (HTTP 200) or `status: "error"` (HTTP 503). Exempt from rate limiting and IP filtering for orchestrator and load balancer probes.
 
 ## 🛡️ HTTP Resilience
 

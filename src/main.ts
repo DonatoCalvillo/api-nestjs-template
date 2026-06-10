@@ -8,6 +8,7 @@ import { getCorsOptions } from './configuration/cors';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableShutdownHooks();
   app.useLogger(app.get(Logger));
 
   if (ENVIRONMENT_VARIABLES.TRUST_PROXY) {

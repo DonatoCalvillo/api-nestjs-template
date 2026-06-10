@@ -39,6 +39,8 @@ interface EnvironmentVariables {
   OTEL_SERVICE_NAME: string;
   OTEL_EXPORTER_OTLP_ENDPOINT: string;
   METRICS_ENABLED: boolean;
+  HEALTH_DISK_PATH: string;
+  HEALTH_DISK_THRESHOLD_PERCENT: number;
 }
 
 const environmentSchema = joi
@@ -75,6 +77,8 @@ const environmentSchema = joi
       .string()
       .default('http://localhost:4318/v1/traces'),
     METRICS_ENABLED: booleanEnv(true),
+    HEALTH_DISK_PATH: joi.string().default('/'),
+    HEALTH_DISK_THRESHOLD_PERCENT: joi.number().min(0).max(1).default(0.9),
   })
   .unknown();
 
@@ -115,4 +119,7 @@ export const ENVIRONMENT_VARIABLES = {
   OTEL_SERVICE_NAME: environmentVariables.OTEL_SERVICE_NAME,
   OTEL_EXPORTER_OTLP_ENDPOINT: environmentVariables.OTEL_EXPORTER_OTLP_ENDPOINT,
   METRICS_ENABLED: environmentVariables.METRICS_ENABLED,
+  HEALTH_DISK_PATH: environmentVariables.HEALTH_DISK_PATH,
+  HEALTH_DISK_THRESHOLD_PERCENT:
+    environmentVariables.HEALTH_DISK_THRESHOLD_PERCENT,
 };
