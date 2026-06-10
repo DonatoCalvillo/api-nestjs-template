@@ -1,22 +1,9 @@
 import './instrumentation';
-import compression from 'compression';
-import {
-  BadRequestException,
-  RequestMethod,
-  ValidationPipe,
-} from '@nestjs/common';
-import { json } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
-import { getCorsOptions } from './configuration/cors';
-import { getHelmetMiddleware } from './configuration/helmet';
-import { API_GLOBAL_PREFIX, SWAGGER_PATH } from './configuration/api.constants';
-import { setupSwagger } from './configuration/swagger';
-import { ErrorCodes } from './modules/shared/domain/enum/error-codes';
-import { ResponseDto } from './modules/shared/domain/response/response';
-import { flattenValidationErrors } from './modules/shared/infrastructure/response/validation-errors.util';
+import { configureApp } from './bootstrap/configure-app';
 
 let isShuttingDown = false;
 
@@ -65,51 +52,7 @@ async function bootstrap() {
     bodyParser: false,
   });
 
-  app.use(json({ limit: ENVIRONMENT_VARIABLES.HTTP_BODY_LIMIT }));
-  app.use(compression());
-  app.useLogger(app.get(Logger));
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-      validationError: { target: false, value: false },
-      exceptionFactory: (errors) => {
-        const fieldErrors = flattenValidationErrors(errors);
-
-        return new BadRequestException(
-          ResponseDto.error('Validation failed', ErrorCodes.VALIDATION, {
-            errors: fieldErrors,
-          }),
-        );
-      },
-    }),
-  );
-
-  if (ENVIRONMENT_VARIABLES.TRUST_PROXY) {
-    app.getHttpAdapter().getInstance().set('trust proxy', 1);
-  }
-
-  if (ENVIRONMENT_VARIABLES.HELMET_ENABLED) {
-    app.use(getHelmetMiddleware());
-  }
-
-  if (ENVIRONMENT_VARIABLES.CORS_ENABLED) {
-    app.enableCors(getCorsOptions());
-  }
-
-  app.setGlobalPrefix(API_GLOBAL_PREFIX, {
-    exclude: [
-      { path: 'health', method: RequestMethod.ALL },
-      { path: 'health/(.*)', method: RequestMethod.ALL },
-      { path: 'metrics', method: RequestMethod.GET },
-      { path: SWAGGER_PATH, method: RequestMethod.ALL },
-      { path: `${SWAGGER_PATH}-json`, method: RequestMethod.GET },
-    ],
-  });
-
-  setupSwagger(app);
+  configureApp(app);
 
   const logger = app.get(Logger);
   await app.listen(ENVIRONMENT_VARIABLES.PORT);

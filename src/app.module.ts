@@ -5,7 +5,7 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ClsModule } from 'nestjs-cls';
+import { ClsMiddleware, ClsModule } from 'nestjs-cls';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import Redis from 'ioredis';
@@ -47,7 +47,7 @@ import {
   imports: [
     ClsModule.forRoot({
       global: true,
-      middleware: { mount: true },
+      middleware: { mount: false },
     }),
     RedisModule.forRoot(),
     SharedModule,
@@ -105,6 +105,8 @@ import {
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(ClsMiddleware).forRoutes('*');
+
     consumer
       .apply(MetricsIpAllowlistMiddleware)
       .forRoutes({ path: METRICS_PATH, method: RequestMethod.GET });

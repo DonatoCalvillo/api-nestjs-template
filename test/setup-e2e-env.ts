@@ -1,0 +1,60 @@
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+process.env.NODE_ENV = 'test';
+process.env.PORT = '3000';
+process.env.CORS_ENABLED = 'true';
+process.env.CORS_ORIGINS = '*';
+process.env.CORS_CREDENTIALS = 'false';
+process.env.HELMET_ENABLED = 'true';
+process.env.THROTTLE_ENABLED = 'false';
+process.env.THROTTLE_TTL = '60';
+process.env.THROTTLE_LIMIT = '100';
+process.env.THROTTLE_STORAGE = 'memory';
+process.env.OUTBOX_RELAY_LOCK = 'memory';
+process.env.OUTBOX_RELAY_LOCK_TTL_SECONDS = '120';
+process.env.IP_FILTER_ENABLED = 'false';
+process.env.IP_ALLOWLIST = '127.0.0.1,::1';
+process.env.TRUST_PROXY = 'false';
+process.env.HTTP_RESILIENCE_ENABLED = 'true';
+process.env.HTTP_TIMEOUT_MS = '5000';
+process.env.HTTP_RETRY_MAX_ATTEMPTS = '2';
+process.env.HTTP_RETRY_DELAY_MS = '10';
+process.env.HTTP_RETRY_BACKOFF_MULTIPLIER = '1';
+process.env.HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD = '2';
+process.env.HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS = '30000';
+process.env.OTEL_TRACES_ENABLED = 'false';
+process.env.OTEL_SERVICE_NAME = 'dodo-schedule-api-test';
+process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4318/v1/traces';
+process.env.METRICS_ENABLED = 'false';
+process.env.METRICS_IP_FILTER_ENABLED = 'false';
+process.env.METRICS_IP_ALLOWLIST = '127.0.0.1,::1';
+process.env.HEALTH_DISK_PATH = '/';
+process.env.HEALTH_DISK_THRESHOLD_PERCENT = '0.9';
+process.env.JWT_ACCESS_SECRET = 'test-access-secret-minimum-32-characters';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-minimum-32-characters';
+process.env.JWT_ACCESS_EXPIRES_IN = '15m';
+process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+process.env.BCRYPT_ROUNDS = '10';
+process.env.IDEMPOTENCY_ENABLED = 'true';
+process.env.IDEMPOTENCY_TTL_HOURS = '24';
+process.env.IDEMPOTENCY_CLEANUP_CRON = '0 */6 * * *';
+process.env.SWAGGER_ENABLED = 'false';
+process.env.DB_MIGRATIONS_RUN = 'false';
+process.env.OUTBOX_RELAY_ENABLED = 'false';
+
+const envFile = join(__dirname, '.testcontainers-env.json');
+
+if (existsSync(envFile)) {
+  const dbEnv = JSON.parse(readFileSync(envFile, 'utf-8')) as Record<
+    string,
+    string
+  >;
+  Object.assign(process.env, dbEnv);
+} else {
+  process.env.DB_HOST = 'localhost';
+  process.env.DB_PORT = '5432';
+  process.env.DB_USERNAME = 'test';
+  process.env.DB_PASSWORD = 'test';
+  process.env.DB_DATABASE = 'test';
+}

@@ -1,0 +1,943 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
+{
+  "components": {
+    "parameters": undefined,
+    "responses": undefined,
+    "schemas": {
+      "ApiErrorResponseDto": {
+        "properties": {},
+        "type": "object",
+      },
+      "LoginDto": {
+        "properties": {
+          "email": {
+            "example": "user@example.com",
+            "type": "string",
+          },
+          "password": {
+            "example": "password123",
+            "type": "string",
+          },
+        },
+        "required": [
+          "email",
+          "password",
+        ],
+        "type": "object",
+      },
+      "LogoutResponseDto": {
+        "properties": {
+          "success": {
+            "example": true,
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "success",
+        ],
+        "type": "object",
+      },
+      "PaginatedResponseDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "type": "array",
+            },
+            "type": "array",
+          },
+          "page": {
+            "example": 1,
+            "type": "number",
+          },
+          "perPage": {
+            "example": 20,
+            "type": "number",
+          },
+          "total": {
+            "example": 100,
+            "type": "number",
+          },
+          "totalPages": {
+            "example": 5,
+            "type": "number",
+          },
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "perPage",
+          "totalPages",
+        ],
+        "type": "object",
+      },
+      "RefreshTokenDto": {
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "refreshToken",
+        ],
+        "type": "object",
+      },
+      "RegisterDto": {
+        "properties": {
+          "email": {
+            "example": "user@example.com",
+            "type": "string",
+          },
+          "name": {
+            "example": "Jane Doe",
+            "type": "string",
+          },
+          "password": {
+            "example": "password123",
+            "type": "string",
+          },
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+        ],
+        "type": "object",
+      },
+      "ResponseMetaDto": {
+        "properties": {},
+        "type": "object",
+      },
+      "TokenResponseDto": {
+        "properties": {
+          "accessToken": {
+            "type": "string",
+          },
+          "expiresIn": {
+            "example": "15m",
+            "type": "string",
+          },
+          "refreshToken": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn",
+        ],
+        "type": "object",
+      },
+    },
+    "securitySchemes": {
+      "access-token": {
+        "bearerFormat": "JWT",
+        "in": "header",
+        "scheme": "bearer",
+        "type": "http",
+      },
+    },
+  },
+  "info": {
+    "contact": {},
+    "description": "REST API documentation",
+    "title": "NestJS API Template",
+    "version": "1.0.0",
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TokenResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LogoutResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Session ended successfully",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TokenResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TokenResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "tags": [
+          "auth",
+        ],
+      },
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthyController_deep",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "details": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "error": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {},
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "info": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                      },
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "status": {
+                      "example": "ok",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Storage and optional OTLP checks passed
+
+The Health Check is successful",
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "details": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                        "redis": {
+                          "message": "Could not connect",
+                          "status": "down",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "error": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "redis": {
+                          "message": "Could not connect",
+                          "status": "down",
+                        },
+                      },
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "info": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                      },
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "status": {
+                      "example": "error",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "One or more checks failed
+
+The Health Check is not successful",
+          },
+        },
+        "summary": "Deep health check",
+        "tags": [
+          "health",
+        ],
+      },
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "HealthyController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "status": "ok",
+                  },
+                },
+              },
+            },
+            "description": "Process is alive",
+          },
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "health",
+        ],
+      },
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthyController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "details": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "error": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {},
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "info": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                      },
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "status": {
+                      "example": "ok",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Dependencies are healthy
+
+The Health Check is successful",
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "details": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                        "redis": {
+                          "message": "Could not connect",
+                          "status": "down",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "error": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "redis": {
+                          "message": "Could not connect",
+                          "status": "down",
+                        },
+                      },
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "info": {
+                      "additionalProperties": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "status",
+                        ],
+                        "type": "object",
+                      },
+                      "example": {
+                        "database": {
+                          "status": "up",
+                        },
+                      },
+                      "nullable": true,
+                      "type": "object",
+                    },
+                    "status": {
+                      "example": "error",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Database unavailable or server is shutting down
+
+The Health Check is not successful",
+          },
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "health",
+        ],
+      },
+    },
+  },
+  "servers": undefined,
+  "tags": [
+    {
+      "description": "Authentication and session management",
+      "name": "auth",
+    },
+    {
+      "description": "Health probes for orchestrators and load balancers",
+      "name": "health",
+    },
+  ],
+}
+`;

@@ -1,0 +1,99 @@
+name: Load
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Start services
+        run: docker compose up -d db
+        env:
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: postgres
+          DB_PORT: 5433
+
+      - name: Run migrations
+        run: pnpm run migration:run
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5433
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: postgres
+          NODE_ENV: development
+
+      - name: Start API
+        run: |
+          node dist/main.js &
+          echo $! > api.pid
+        env:
+          NODE_ENV: development
+          PORT: 3000
+          DB_HOST: localhost
+          DB_PORT: 5433
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: postgres
+          DB_MIGRATIONS_RUN: 'false'
+          JWT_ACCESS_SECRET: test-access-secret-minimum-32-characters
+          JWT_REFRESH_SECRET: test-refresh-secret-minimum-32-characters
+          CORS_ENABLED: 'true'
+          CORS_ORIGINS: '*'
+          HELMET_ENABLED: 'true'
+          THROTTLE_ENABLED: 'false'
+
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/health/live; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run health load test
+        run: k6 run load/scenarios/health-live.js
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f api.pid ]; then
+            kill "$(cat api.pid)" || true
+          fi
+          docker compose down

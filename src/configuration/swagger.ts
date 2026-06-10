@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import {
   ApiErrorResponseDto,
   ResponseMetaDto,
@@ -8,12 +8,8 @@ import { PaginatedResponseDto } from '../modules/shared/infrastructure/dtos';
 import { API_GLOBAL_PREFIX, API_VERSION, SWAGGER_PATH } from './api.constants';
 import { ENVIRONMENT_VARIABLES } from './environments-variables';
 
-export const setupSwagger = (app: INestApplication): void => {
-  if (!ENVIRONMENT_VARIABLES.SWAGGER_ENABLED) {
-    return;
-  }
-
-  const config = new DocumentBuilder()
+const createSwaggerConfig = () =>
+  new DocumentBuilder()
     .setTitle('NestJS API Template')
     .setDescription('REST API documentation')
     .setVersion(API_VERSION)
@@ -34,8 +30,17 @@ export const setupSwagger = (app: INestApplication): void => {
     )
     .build();
 
-  const document = SwaggerModule.createDocument(app, config, {
+export const buildSwaggerDocument = (app: INestApplication): OpenAPIObject => {
+  return SwaggerModule.createDocument(app, createSwaggerConfig(), {
     extraModels: [ResponseMetaDto, ApiErrorResponseDto, PaginatedResponseDto],
   });
+};
+
+export const setupSwagger = (app: INestApplication): void => {
+  if (!ENVIRONMENT_VARIABLES.SWAGGER_ENABLED) {
+    return;
+  }
+
+  const document = buildSwaggerDocument(app);
   SwaggerModule.setup(SWAGGER_PATH, app, document);
 };

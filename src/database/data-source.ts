@@ -1,5 +1,6 @@
 import { ENVIRONMENT_VARIABLES } from '../configuration/environments-variables';
 import { DataSource, DataSourceOptions } from 'typeorm';
+import { entities } from './entities';
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
@@ -8,7 +9,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: ENVIRONMENT_VARIABLES.DB_USERNAME,
   password: ENVIRONMENT_VARIABLES.DB_PASSWORD,
   database: ENVIRONMENT_VARIABLES.DB_DATABASE,
-  entities: ['dist/**/*.entity.js'],
+  entities,
   migrationsTableName: 'migrations',
   migrations: ['dist/database/migrations/*.js'],
   synchronize: false,
