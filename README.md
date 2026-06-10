@@ -38,6 +38,8 @@ Persistence entities live in the infrastructure layer and extend `BaseEntity` fr
 
 | Export | Field | TypeORM decorator |
 |--------|-------|-------------------|
+| `IEntity` | Interface contract for persistence entities | — |
+| `BaseEntity` | Abstract base class implementing `IEntity` | — |
 | `id` | UUID primary key | `@PrimaryGeneratedColumn('uuid')` |
 | `createdAt` | Creation timestamp | `@CreateDateColumn({ type: 'timestamptz' })` |
 | `updatedAt` | Last update timestamp | `@UpdateDateColumn({ type: 'timestamptz' })` |
@@ -214,6 +216,132 @@ export class UserModel extends BaseModel<UserProps> {
     });
   }
 }
+```
+
+## 🔄 Mappers
+
+Mappers translate between domain models (`IModel`) and TypeORM entities (`IEntity`). The contract lives in `src/modules/shared/application/mappers/` and keeps the domain layer free from persistence details.
+
+### What is included
+
+| Export | Description |
+|--------|-------------|
+| `IMapper` | Contract with `toModel` and `toPersistence` |
+| `toModel` | Converts a TypeORM entity into a domain model |
+| `toPersistence` | Converts a domain model into a TypeORM entity |
+
+### Recommended folder structure
+
+```
+src/modules/users/
+├── domain/
+│   └── models/
+│       └── user.model.ts
+├── infrastructure/
+│   ├── persistence/
+│   │   └── user.entity.ts
+│   └── mappers/
+│       └── user.mapper.ts
+```
+
+### Step 1 — Implement `IMapper`
+
+Create one mapper per aggregate, implementing both conversion directions:
+
+```typescript
+// src/modules/users/infrastructure/mappers/user.mapper.ts
+import { EmailValueObject, NonEmptyStringValueObject } from 'value-object-lib';
+import { IMapper } from '../../../shared/application/mappers';
+import { UserModel } from '../../domain/models/user.model';
+import { UserEntity } from '../persistence/user.entity';
+
+export class UserMapper implements IMapper<UserModel, UserEntity> {
+  toModel(entity: UserEntity): UserModel {
+    return new UserModel({
+      id: entity.id,
+      props: {
+        name: new NonEmptyStringValueObject('name', entity.name),
+        email: new EmailValueObject('email', entity.email),
+      },
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    });
+  }
+
+  toPersistence(model: UserModel): UserEntity {
+    const entity = new UserEntity();
+
+    entity.id = model.id;
+    entity.name = model.name;
+    entity.email = model.email;
+    entity.createdAt = model.createdAt ?? new Date();
+    entity.updatedAt = model.updatedAt ?? new Date();
+
+    return entity;
+  }
+}
+```
+
+**`toModel`:** use when reading from the database (repository → use case → domain).
+
+**`toPersistence`:** use before saving to the database (domain → repository → TypeORM).
+
+Rebuild value objects in `toModel` so domain validation runs on every load. Map primitives in `toPersistence` from model getters, not from raw value objects.
+
+### Step 2 — Register the mapper in the module
+
+```typescript
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserEntity } from './infrastructure/persistence/user.entity';
+import { UserMapper } from './infrastructure/mappers/user.mapper';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([UserEntity])],
+  providers: [UserMapper],
+  exports: [UserMapper],
+})
+export class UsersModule {}
+```
+
+### Step 3 — Use in a repository
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserModel } from '../../domain/models/user.model';
+import { UserEntity } from '../persistence/user.entity';
+import { UserMapper } from '../mappers/user.mapper';
+
+@Injectable()
+export class UserRepository {
+  constructor(
+    @InjectRepository(UserEntity)
+    private readonly repository: Repository<UserEntity>,
+    private readonly mapper: UserMapper,
+  ) {}
+
+  async findById(id: string): Promise<UserModel | null> {
+    const entity = await this.repository.findOne({ where: { id } });
+
+    return entity ? this.mapper.toModel(entity) : null;
+  }
+
+  async save(model: UserModel): Promise<UserModel> {
+    const entity = this.mapper.toPersistence(model);
+    const saved = await this.repository.save(entity);
+
+    return this.mapper.toModel(saved);
+  }
+}
+```
+
+### Data flow
+
+```
+Database → UserEntity → toModel() → UserModel → use case / domain logic
+Database ← UserEntity ← toPersistence() ← UserModel ← use case / domain logic
 ```
 
 ## 🧑‍💻 Developing
