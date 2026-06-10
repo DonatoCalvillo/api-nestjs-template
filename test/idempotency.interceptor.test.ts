@@ -25,7 +25,7 @@ describe('IdempotencyInterceptor', () => {
   const scope = 'anonymous';
   const idempotencyKey = 'key-123';
   const method = 'POST';
-  const path = '/auth/register';
+  const path = '/api/v1/auth/register';
   const body = { email: 'user@example.com', password: 'secret' };
   const requestHash = buildRequestHash(method, path, body);
 

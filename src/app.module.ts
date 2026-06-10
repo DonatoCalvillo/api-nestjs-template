@@ -9,6 +9,7 @@ import { dataSourceOptions } from './database/data-source';
 import { LoggerModule } from 'nestjs-pino';
 
 import { RequestContextMiddleware } from './modules/shared/infrastructure/audit/request-context.middleware';
+import { ApiVersionMiddleware } from './modules/shared/infrastructure/middlewares/api-version.middleware';
 import { RequestIdMiddleware } from './modules/shared/infrastructure/middlewares/request-id.middleware';
 import { IpAllowlistMiddleware } from './modules/shared/infrastructure/middlewares/ip-allowlist.middleware';
 import { ConditionalThrottlerGuard } from './modules/shared/infrastructure/guards/conditional-throttler.guard';
@@ -100,6 +101,7 @@ export class AppModule implements NestModule {
     consumer
       .apply(
         IpAllowlistMiddleware,
+        ApiVersionMiddleware,
         RequestIdMiddleware,
         RequestContextMiddleware,
       )

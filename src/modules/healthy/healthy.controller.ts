@@ -4,6 +4,12 @@ import {
   Req,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   DiskHealthIndicator,
@@ -21,6 +27,7 @@ import { Public } from '../auth/infrastructure/decorators/public.decorator';
 
 @Public()
 @SkipThrottle()
+@ApiTags('health')
 @Controller('health')
 export class HealthyController {
   constructor(
@@ -35,12 +42,22 @@ export class HealthyController {
   }
 
   @Get('live')
+  @ApiOperation({ summary: 'Liveness probe' })
+  @ApiOkResponse({
+    description: 'Process is alive',
+    schema: { example: { status: 'ok' } },
+  })
   live() {
     return { status: 'ok' };
   }
 
   @Get('ready')
   @HealthCheck()
+  @ApiOperation({ summary: 'Readiness probe' })
+  @ApiOkResponse({ description: 'Dependencies are healthy' })
+  @ApiServiceUnavailableResponse({
+    description: 'Database unavailable or server is shutting down',
+  })
   ready(@Req() req: Request) {
     this.logger.info(`Readiness check request coming from: ${req.ip}`);
 
@@ -64,6 +81,9 @@ export class HealthyController {
 
   @Get()
   @HealthCheck()
+  @ApiOperation({ summary: 'Deep health check' })
+  @ApiOkResponse({ description: 'Storage and optional OTLP checks passed' })
+  @ApiServiceUnavailableResponse({ description: 'One or more checks failed' })
   deep(@Req() req: Request) {
     this.logger.info(`Deep health check request coming from: ${req.ip}`);
 

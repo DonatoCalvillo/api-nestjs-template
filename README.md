@@ -460,7 +460,7 @@ Readiness and deep checks return Terminus JSON with `status: "ok"` (HTTP 200) or
 
 Success and error responses use a unified `ResponseDto` envelope (`success`, `message`, `data`, `code`, `meta`). Controllers return plain DTOs; `TransformResponseInterceptor` wraps them automatically. Domain errors map to typed HTTP statuses with stable error codes.
 
-See [docs/api-responses.md](docs/api-responses.md) for the full contract, validation error shape, and excluded routes (`/health`, `/health/live`, `/health/ready`, `/metrics`, Swagger).
+See [docs/api-responses.md](docs/api-responses.md) for the full contract, validation error shape, API versioning (`/api/v1`), and excluded routes (`/health`, `/health/live`, `/health/ready`, `/metrics`, Swagger at `/api/docs`).
 
 ## 📋 Audit log
 

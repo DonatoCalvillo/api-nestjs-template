@@ -1,8 +1,9 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-
-const API_VERSION_HEADER = 'x-api-version';
-const API_VERSION = '0.0.0';
+import {
+  API_VERSION,
+  API_VERSION_HEADER,
+} from '../../../../configuration/api.constants';
 
 @Injectable()
 export class ApiVersionMiddleware implements NestMiddleware {

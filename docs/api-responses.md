@@ -11,7 +11,7 @@ All HTTP endpoints use a unified `ResponseDto` envelope, except operational rout
   "data": {},
   "meta": {
     "timestamp": "2026-06-10T12:00:00.000Z",
-    "path": "/auth/login",
+    "path": "/api/v1/auth/login",
     "requestId": "req-123",
     "traceId": "abc",
     "spanId": "def"
@@ -30,7 +30,7 @@ Controllers return plain DTOs; `TransformResponseInterceptor` wraps them automat
   "code": "E-AUTH-001",
   "meta": {
     "timestamp": "2026-06-10T12:00:00.000Z",
-    "path": "/auth/login",
+    "path": "/api/v1/auth/login",
     "requestId": "req-123",
     "traceId": "abc",
     "spanId": "def"
@@ -47,7 +47,7 @@ Validation errors include structured details in `data`:
   "code": "E-VALIDATION",
   "data": {
     "errors": [
-      { "field": "email", "message": "email must be an email" }
+      { "field": "email", "message": "Must be a valid email address" }
     ]
   },
   "meta": { }
@@ -57,6 +57,10 @@ Validation errors include structured details in `data`:
 ## Trace metadata
 
 `requestId`, `traceId`, and `spanId` are returned in `meta` and also exposed via response headers when available.
+
+## API versioning
+
+Business endpoints are served under the global prefix `/api/v1` (for example `/api/v1/auth/login`). Operational routes below stay at the root path.
 
 ## Excluded routes
 

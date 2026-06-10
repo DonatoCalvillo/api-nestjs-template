@@ -17,10 +17,11 @@ import { AuthenticatedUser } from '../../../users/application/types/authenticate
 import { LoginDto } from './dtos/login.dto';
 import { RefreshTokenDto } from './dtos/refresh-token.dto';
 import { RegisterDto } from './dtos/register.dto';
+import { LogoutResponseDto } from './dtos/logout-response.dto';
 import { TokenResponseDto } from './dtos/token-response.dto';
 
 @ApiTags('auth')
-@ApiExtraModels(TokenResponseDto, ResponseMetaDto)
+@ApiExtraModels(TokenResponseDto, LogoutResponseDto, ResponseMetaDto)
 @Controller('auth')
 export class AuthController extends BaseController {
   constructor(
@@ -62,6 +63,8 @@ export class AuthController extends BaseController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
+  @ApiOkResponseEnvelope(LogoutResponseDto, 'Session ended successfully')
+  @ApiStandardErrorResponses()
   async logout(
     @CurrentUser() _user: AuthenticatedUser,
     @Body() dto: RefreshTokenDto,

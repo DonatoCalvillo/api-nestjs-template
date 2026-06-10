@@ -58,7 +58,10 @@ describe('HttpExceptionFilter', () => {
     }) as unknown as ArgumentsHost;
 
   it('maps DomainError to ResponseDto with code and meta', () => {
-    filter.catch(new InvalidCredentialsError(), createHost('/auth/login'));
+    filter.catch(
+      new InvalidCredentialsError(),
+      createHost('/api/v1/auth/login'),
+    );
 
     expect(status).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
     expect(json).toHaveBeenCalledWith(
@@ -67,7 +70,7 @@ describe('HttpExceptionFilter', () => {
         message: 'Invalid email or password',
         code: 'E-AUTH-001',
         meta: expect.objectContaining({
-          path: '/auth/login',
+          path: '/api/v1/auth/login',
           requestId: 'req-1',
           traceId: 'trace-1',
           spanId: 'span-1',
@@ -88,7 +91,7 @@ describe('HttpExceptionFilter', () => {
 
     filter.catch(
       new BadRequestException(validationBody),
-      createHost('/auth/register'),
+      createHost('/api/v1/auth/register'),
     );
 
     expect(status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);

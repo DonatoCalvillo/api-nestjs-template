@@ -1,6 +1,10 @@
 import './instrumentation';
 import compression from 'compression';
-import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  RequestMethod,
+  ValidationPipe,
+} from '@nestjs/common';
 import { json } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -8,6 +12,7 @@ import { Logger } from 'nestjs-pino';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
 import { getCorsOptions } from './configuration/cors';
 import { getHelmetMiddleware } from './configuration/helmet';
+import { API_GLOBAL_PREFIX, SWAGGER_PATH } from './configuration/api.constants';
 import { setupSwagger } from './configuration/swagger';
 import { ErrorCodes } from './modules/shared/domain/enum/error-codes';
 import { ResponseDto } from './modules/shared/domain/response/response';
@@ -68,6 +73,8 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: { enableImplicitConversion: true },
+      validationError: { target: false, value: false },
       exceptionFactory: (errors) => {
         const fieldErrors = flattenValidationErrors(errors);
 
@@ -91,6 +98,16 @@ async function bootstrap() {
   if (ENVIRONMENT_VARIABLES.CORS_ENABLED) {
     app.enableCors(getCorsOptions());
   }
+
+  app.setGlobalPrefix(API_GLOBAL_PREFIX, {
+    exclude: [
+      { path: 'health', method: RequestMethod.ALL },
+      { path: 'health/(.*)', method: RequestMethod.ALL },
+      { path: 'metrics', method: RequestMethod.GET },
+      { path: SWAGGER_PATH, method: RequestMethod.ALL },
+      { path: `${SWAGGER_PATH}-json`, method: RequestMethod.GET },
+    ],
+  });
 
   setupSwagger(app);
 

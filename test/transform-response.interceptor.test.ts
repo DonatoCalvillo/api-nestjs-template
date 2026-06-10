@@ -39,7 +39,7 @@ describe('TransformResponseInterceptor', () => {
   it('wraps plain handler data in ResponseDto with meta', async () => {
     const result = await lastValueFrom(
       interceptor.intercept(
-        createExecutionContext('/auth/login'),
+        createExecutionContext('/api/v1/auth/login'),
         createCallHandler({ accessToken: 'token' }),
       ),
     );
@@ -50,7 +50,7 @@ describe('TransformResponseInterceptor', () => {
         { accessToken: 'token' },
         {
           timestamp: expect.any(String),
-          path: '/auth/login',
+          path: '/api/v1/auth/login',
           requestId: 'req-1',
           traceId: 'trace-1',
           spanId: 'span-1',

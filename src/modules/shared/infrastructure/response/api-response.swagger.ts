@@ -9,6 +9,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { ResponseMeta } from '../../domain/response/response';
+import { PaginatedResponseDto } from '../dtos/paginated-response.dto';
 
 export class ResponseMetaDto implements ResponseMeta {
   timestamp: string;
@@ -40,6 +41,38 @@ export const ApiOkResponseEnvelope = <TModel extends Type<unknown>>(
           success: { type: 'boolean', example: true },
           message: { type: 'string', example: 'Request successful' },
           data: { $ref: getSchemaPath(model) },
+          meta: { $ref: getSchemaPath(ResponseMetaDto) },
+        },
+      },
+    }),
+  );
+
+export const ApiPaginatedResponseEnvelope = <TModel extends Type<unknown>>(
+  model: TModel,
+  description?: string,
+) =>
+  applyDecorators(
+    ApiOkResponse({
+      description,
+      schema: {
+        type: 'object',
+        required: ['success', 'message'],
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Request successful' },
+          data: {
+            allOf: [
+              { $ref: getSchemaPath(PaginatedResponseDto) },
+              {
+                properties: {
+                  items: {
+                    type: 'array',
+                    items: { $ref: getSchemaPath(model) },
+                  },
+                },
+              },
+            ],
+          },
           meta: { $ref: getSchemaPath(ResponseMetaDto) },
         },
       },

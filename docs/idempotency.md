@@ -43,7 +43,7 @@ Dos usuarios distintos pueden reutilizar la misma clave sin conflicto.
 ### Ejemplo
 
 ```http
-POST /auth/register HTTP/1.1
+POST /api/v1/auth/register HTTP/1.1
 Idempotency-Key: 7f5c8f2a-0c4b-4f6a-9c2d-8b1e4a6f9d0c
 Content-Type: application/json
 

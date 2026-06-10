@@ -4,6 +4,8 @@ import {
   ApiErrorResponseDto,
   ResponseMetaDto,
 } from '../modules/shared/infrastructure/response';
+import { PaginatedResponseDto } from '../modules/shared/infrastructure/dtos';
+import { API_GLOBAL_PREFIX, API_VERSION, SWAGGER_PATH } from './api.constants';
 import { ENVIRONMENT_VARIABLES } from './environments-variables';
 
 export const setupSwagger = (app: INestApplication): void => {
@@ -12,9 +14,15 @@ export const setupSwagger = (app: INestApplication): void => {
   }
 
   const config = new DocumentBuilder()
-    .setTitle('Dodo Schedule API')
+    .setTitle('NestJS API Template')
     .setDescription('REST API documentation')
-    .setVersion('1.0')
+    .setVersion(API_VERSION)
+    .addServer(
+      `http://localhost:${ENVIRONMENT_VARIABLES.PORT}/${API_GLOBAL_PREFIX}`,
+      'Local development',
+    )
+    .addTag('auth', 'Authentication and session management')
+    .addTag('health', 'Health probes for orchestrators and load balancers')
     .addBearerAuth(
       {
         type: 'http',
@@ -27,7 +35,7 @@ export const setupSwagger = (app: INestApplication): void => {
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
-    extraModels: [ResponseMetaDto, ApiErrorResponseDto],
+    extraModels: [ResponseMetaDto, ApiErrorResponseDto, PaginatedResponseDto],
   });
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup(SWAGGER_PATH, app, document);
 };
