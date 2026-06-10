@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResilienceModule } from 'nestjs-resilience';
 import { ENVIRONMENT_VARIABLES } from '../../configuration/environments-variables';
+import { DISTRIBUTED_LOCK } from './application/locking/ports/distributed-lock.port';
 import {
   AUDIT_LOG_REPOSITORY,
   AUDIT_LOG_SERVICE,
@@ -34,6 +35,10 @@ import {
   IdempotencyKeyEntity,
   TypeOrmIdempotencyRepository,
 } from './infrastructure/idempotency';
+import {
+  MemoryDistributedLock,
+  RedisDistributedLock,
+} from './infrastructure/locking';
 import {
   NoOpMessageBrokerPublisher,
   OutboxMessageEntity,
@@ -105,6 +110,19 @@ import { TraceContextService } from './infrastructure/tracing';
       useExisting: NoOpMessageBrokerPublisher,
     },
     OutboxRelayService,
+    ...(ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK === 'redis'
+      ? [
+          {
+            provide: DISTRIBUTED_LOCK,
+            useClass: RedisDistributedLock,
+          },
+        ]
+      : [
+          {
+            provide: DISTRIBUTED_LOCK,
+            useClass: MemoryDistributedLock,
+          },
+        ]),
     TypeOrmIdempotencyRepository,
     {
       provide: IDEMPOTENCY_REPOSITORY,

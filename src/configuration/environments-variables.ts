@@ -26,6 +26,10 @@ interface EnvironmentVariables {
   THROTTLE_ENABLED: boolean;
   THROTTLE_TTL: number;
   THROTTLE_LIMIT: number;
+  THROTTLE_STORAGE: 'memory' | 'redis';
+  OUTBOX_RELAY_LOCK: 'memory' | 'redis';
+  REDIS_URL?: string;
+  OUTBOX_RELAY_LOCK_TTL_SECONDS: number;
   IP_FILTER_ENABLED: boolean;
   IP_ALLOWLIST: string;
   TRUST_PROXY: boolean;
@@ -76,6 +80,18 @@ const environmentSchema = joi
     THROTTLE_ENABLED: booleanEnv(true),
     THROTTLE_TTL: joi.number().default(60),
     THROTTLE_LIMIT: joi.number().default(100),
+    THROTTLE_STORAGE: joi.string().valid('memory', 'redis').default('memory'),
+    OUTBOX_RELAY_LOCK: joi.string().valid('memory', 'redis').default('memory'),
+    REDIS_URL: joi.string().when('THROTTLE_STORAGE', {
+      is: 'redis',
+      then: joi.required(),
+      otherwise: joi.when('OUTBOX_RELAY_LOCK', {
+        is: 'redis',
+        then: joi.required(),
+        otherwise: joi.optional(),
+      }),
+    }),
+    OUTBOX_RELAY_LOCK_TTL_SECONDS: joi.number().min(1).default(120),
     IP_FILTER_ENABLED: booleanEnv(false),
     IP_ALLOWLIST: joi.string().default('127.0.0.1,::1'),
     TRUST_PROXY: booleanEnv(false),
@@ -143,6 +159,11 @@ export const ENVIRONMENT_VARIABLES = {
   THROTTLE_ENABLED: environmentVariables.THROTTLE_ENABLED,
   THROTTLE_TTL: environmentVariables.THROTTLE_TTL,
   THROTTLE_LIMIT: environmentVariables.THROTTLE_LIMIT,
+  THROTTLE_STORAGE: environmentVariables.THROTTLE_STORAGE,
+  OUTBOX_RELAY_LOCK: environmentVariables.OUTBOX_RELAY_LOCK,
+  REDIS_URL: environmentVariables.REDIS_URL,
+  OUTBOX_RELAY_LOCK_TTL_SECONDS:
+    environmentVariables.OUTBOX_RELAY_LOCK_TTL_SECONDS,
   IP_FILTER_ENABLED: environmentVariables.IP_FILTER_ENABLED,
   IP_ALLOWLIST: parseCsv(environmentVariables.IP_ALLOWLIST),
   TRUST_PROXY: environmentVariables.TRUST_PROXY,
@@ -177,3 +198,7 @@ export const ENVIRONMENT_VARIABLES = {
   IDEMPOTENCY_TTL_HOURS: environmentVariables.IDEMPOTENCY_TTL_HOURS,
   IDEMPOTENCY_CLEANUP_CRON: environmentVariables.IDEMPOTENCY_CLEANUP_CRON,
 };
+
+export const isRedisEnabled = (): boolean =>
+  ENVIRONMENT_VARIABLES.THROTTLE_STORAGE === 'redis' ||
+  ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK === 'redis';

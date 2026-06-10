@@ -426,6 +426,10 @@ The API supports HTTP security headers (Helmet), CORS, rate limiting, and IP all
 | `THROTTLE_ENABLED` | `true` | Enable global rate limiting |
 | `THROTTLE_TTL` | `60` | Rate limit window in seconds |
 | `THROTTLE_LIMIT` | `100` | Max requests per IP within the window |
+| `THROTTLE_STORAGE` | `memory` | `memory` (per process) or `redis` (shared across replicas) |
+| `OUTBOX_RELAY_LOCK` | `memory` | `memory` (per pod) or `redis` (single global relay worker) |
+| `REDIS_URL` | — | Required when `THROTTLE_STORAGE=redis` or `OUTBOX_RELAY_LOCK=redis` |
+| `OUTBOX_RELAY_LOCK_TTL_SECONDS` | `120` | Redis lock TTL for outbox relay |
 | `IP_FILTER_ENABLED` | `false` | Enable IP allowlist filtering |
 | `IP_ALLOWLIST` | `127.0.0.1,::1` | Allowed IPs when filtering is enabled, comma-separated |
 | `TRUST_PROXY` | `false` | Enable Express `trust proxy` for correct `req.ip` behind nginx/ALB |
@@ -436,7 +440,9 @@ Copy the security block from `example.env` into your `.env` file.
 
 **Helmet:** When enabled, sets security headers on every response: `X-Content-Type-Options: nosniff` (MIME sniffing), `X-Frame-Options: DENY` (clickjacking), `Cross-Origin-Resource-Policy: cross-origin` (compatible with browser clients and CORS), and hides `X-Powered-By`. `Strict-Transport-Security` is sent only when `NODE_ENV=production`. Disable with `HELMET_ENABLED=false`.
 
-**Rate limiting:** Exceeded requests receive `429 Too Many Requests`. Disable with `THROTTLE_ENABLED=false`.
+**Rate limiting:** Exceeded requests receive `429 Too Many Requests`. Disable with `THROTTLE_ENABLED=false`. For multiple replicas, set `THROTTLE_STORAGE=redis` and provide `REDIS_URL`.
+
+**Multi-instance:** Throttling and outbox relay coordination support `memory` (default) or `redis`. See **[docs/multi-instance.md](docs/multi-instance.md)**.
 
 **IP filtering:** Allowlist mode — only listed IPs can access the API when `IP_FILTER_ENABLED=true`. Set `TRUST_PROXY=true` when running behind a reverse proxy or load balancer.
 

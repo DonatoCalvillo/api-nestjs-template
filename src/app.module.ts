@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ClsModule } from 'nestjs-cls';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
+import Redis from 'ioredis';
 
 import { dataSourceOptions } from './database/data-source';
 import { LoggerModule } from 'nestjs-pino';
@@ -20,11 +21,16 @@ import { PermissionsGuard } from './modules/auth/infrastructure/guards/permissio
 import { RolesGuard } from './modules/auth/infrastructure/guards/roles.guard';
 import { loggerOptions } from './configuration/logger';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
+import { buildThrottlerModuleOptions } from './configuration/throttler.config';
 import { HttpExceptionFilter } from './modules/shared/infrastructure/filters/http-exception.filter';
 import { TransformResponseInterceptor } from './modules/shared/infrastructure/interceptors';
 import { IdempotencyInterceptor } from './modules/shared/infrastructure/idempotency';
 import { TracingInterceptor } from './modules/shared/infrastructure/tracing';
 import { MetricsModule } from './modules/shared/infrastructure/metrics';
+import {
+  REDIS_CLIENT,
+  RedisModule,
+} from './modules/shared/infrastructure/redis';
 
 @Module({
   imports: [
@@ -32,15 +38,14 @@ import { MetricsModule } from './modules/shared/infrastructure/metrics';
       global: true,
       middleware: { mount: true },
     }),
+    RedisModule.forRoot(),
     SharedModule,
     TypeOrmModule.forRoot(dataSourceOptions),
     LoggerModule.forRoot(loggerOptions),
-    ThrottlerModule.forRoot([
-      {
-        ttl: ENVIRONMENT_VARIABLES.THROTTLE_TTL * 1000,
-        limit: ENVIRONMENT_VARIABLES.THROTTLE_LIMIT,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      inject: [REDIS_CLIENT],
+      useFactory: (redis: Redis | null) => buildThrottlerModuleOptions(redis),
+    }),
     HealthyModule,
     UsersModule,
     AuthModule,

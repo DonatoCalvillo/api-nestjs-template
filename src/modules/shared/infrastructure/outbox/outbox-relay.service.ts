@@ -1,6 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ENVIRONMENT_VARIABLES } from '../../../../configuration/environments-variables';
+import {
+  DISTRIBUTED_LOCK,
+  IDistributedLock,
+} from '../../application/locking/ports/distributed-lock.port';
 import { deserializeDomainEventEnvelope } from '../../application/outbox';
 import {
   MESSAGE_BROKER_PUBLISHER,
@@ -8,17 +12,19 @@ import {
 } from '../../application/outbox/outbox.constants';
 import { IMessageBrokerPublisher } from '../../application/outbox/ports/message-broker.publisher.port';
 import { IOutboxRepository } from '../../application/outbox/ports/outbox.repository.port';
+import { OUTBOX_RELAY_LOCK_KEY } from '../locking/locking.constants';
 
 @Injectable()
 export class OutboxRelayService {
   private readonly logger = new Logger(OutboxRelayService.name);
-  private isProcessing = false;
 
   constructor(
     @Inject(OUTBOX_REPOSITORY)
     private readonly outboxRepository: IOutboxRepository,
     @Inject(MESSAGE_BROKER_PUBLISHER)
     private readonly messageBrokerPublisher: IMessageBrokerPublisher,
+    @Inject(DISTRIBUTED_LOCK)
+    private readonly distributedLock: IDistributedLock,
   ) {}
 
   @Cron(ENVIRONMENT_VARIABLES.OUTBOX_RELAY_CRON)
@@ -27,11 +33,14 @@ export class OutboxRelayService {
       return;
     }
 
-    if (this.isProcessing) {
+    const acquired = await this.distributedLock.tryAcquire(
+      OUTBOX_RELAY_LOCK_KEY,
+      ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK_TTL_SECONDS,
+    );
+
+    if (!acquired) {
       return;
     }
-
-    this.isProcessing = true;
 
     try {
       const batch = await this.outboxRepository.claimPendingBatch(
@@ -101,7 +110,7 @@ export class OutboxRelayService {
         'Outbox relay batch failed',
       );
     } finally {
-      this.isProcessing = false;
+      await this.distributedLock.release(OUTBOX_RELAY_LOCK_KEY);
     }
   }
 }

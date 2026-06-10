@@ -28,6 +28,7 @@
     "deps:check-age": "node scripts/find-safe-versions.mjs 7"
   },
   "dependencies": {
+    "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "11.1.24",
     "@nestjs/core": "11.1.24",
@@ -53,6 +54,7 @@
     "class-validator": "^0.15.1",
     "dotenv": "17.4.2",
     "helmet": "^8.2.0",
+    "ioredis": "^5.11.1",
     "joi": "18.2.1",
     "nestjs-cls": "^6.2.1",
     "nestjs-pino": "4.6.1",

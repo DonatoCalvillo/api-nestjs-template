@@ -135,6 +135,9 @@ This creates the `outbox_messages` table. See `src/database/migrations/178200000
 | `OUTBOX_RELAY_CRON` | `*/5 * * * * *` | Cron expression (seconds supported) |
 | `OUTBOX_RELAY_BATCH_SIZE` | `50` | Max rows claimed per run |
 | `OUTBOX_RELAY_MAX_ATTEMPTS` | `5` | Retries before marking `failed` |
+| `OUTBOX_RELAY_LOCK` | `memory` | `memory` = overlap guard per pod; `redis` = single global relay worker |
+| `OUTBOX_RELAY_LOCK_TTL_SECONDS` | `120` | Redis lock TTL when `OUTBOX_RELAY_LOCK=redis` |
+| `REDIS_URL` | — | Required when `OUTBOX_RELAY_LOCK=redis` (see [multi-instance.md](multi-instance.md)) |
 
 Enable the relay in environments where a real broker adapter is registered:
 
@@ -175,6 +178,7 @@ The relay passes the full `DomainEventEnvelope` (event + actor/request/trace met
 | External delivery | At-least-once (consumers must be idempotent; see [idempotency.md](idempotency.md#relación-con-el-outbox-mensajería)) |
 | In-process handlers | Still fire-and-forget after commit; not durable across restarts |
 | Failed relay | Retries up to `OUTBOX_RELAY_MAX_ATTEMPTS`, then `failed` status |
+| Multi-instance | Row claiming via `SKIP LOCKED`; optional Redis lock for single relay worker — [multi-instance.md](multi-instance.md) |
 
 ## Listen from another module
 
