@@ -304,38 +304,77 @@ import { UserMapper } from './infrastructure/mappers/user.mapper';
 export class UsersModule {}
 ```
 
-### Step 3 — Use in a repository
+### Step 3 — Extend the base repository
+
+Extend `TypeOrmBaseRepository` to inherit CRUD operations. The base class uses `IMapper` internally and implements `IRepository`.
+
+**Shared exports** (`src/modules/shared/infrastructure/persistence/`):
+
+| Export | Description |
+|--------|-------------|
+| `TypeOrmBaseRepository` | Abstract base with `findById`, `findOne`, `findMany`, `save`, `delete`, `softDelete` |
+| `SoftDeletableEntity` | Optional base entity with `@DeleteDateColumn` for soft delete support |
+| `BaseEntity` / `IEntity` | Standard entity contract with UUID and timestamps |
+
+**Domain port** (`src/modules/shared/domain/repositories/`):
+
+| Export | Description |
+|--------|-------------|
+| `IRepository` | Repository contract implemented by concrete repositories |
+| `QueryOptions` | Filter, relations, pagination, and transaction options |
+| `PaginatedResult` | `{ items, total }` returned by `findMany` |
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { IRepository } from '../../../shared/domain/repositories';
+import { TypeOrmBaseRepository } from '../../../shared/infrastructure/persistence';
 import { UserModel } from '../../domain/models/user.model';
 import { UserEntity } from '../persistence/user.entity';
 import { UserMapper } from '../mappers/user.mapper';
 
 @Injectable()
-export class UserRepository {
-  constructor(
-    @InjectRepository(UserEntity)
-    private readonly repository: Repository<UserEntity>,
-    private readonly mapper: UserMapper,
-  ) {}
-
-  async findById(id: string): Promise<UserModel | null> {
-    const entity = await this.repository.findOne({ where: { id } });
-
-    return entity ? this.mapper.toModel(entity) : null;
+export class UserRepository
+  extends TypeOrmBaseRepository<UserModel, UserEntity>
+  implements IRepository<UserModel>
+{
+  constructor(mapper: UserMapper, dataSource: DataSource) {
+    super(mapper, dataSource, UserRepository.name);
   }
 
-  async save(model: UserModel): Promise<UserModel> {
-    const entity = this.mapper.toPersistence(model);
-    const saved = await this.repository.save(entity);
+  protected entityClass() {
+    return UserEntity;
+  }
 
-    return this.mapper.toModel(saved);
+  async findByEmail(email: string): Promise<UserModel | null> {
+    return this.findOne({ where: { email } });
   }
 }
 ```
+
+Register the repository in the module:
+
+```typescript
+@Module({
+  imports: [TypeOrmModule.forFeature([UserEntity])],
+  providers: [UserMapper, UserRepository],
+  exports: [UserRepository],
+})
+export class UsersModule {}
+```
+
+**Pagination example:**
+
+```typescript
+const { items, total } = await this.userRepository.findMany({
+  where: { active: true },
+  order: { createdAt: 'DESC' },
+  page: 1,
+  perPage: 20,
+});
+```
+
+**Soft delete:** extend `SoftDeletableEntity` instead of `BaseEntity` on entities that support it, then call `softDelete(model)`. Use `delete(model)` for hard deletes that permanently remove the row.
 
 ### Data flow
 
