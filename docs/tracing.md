@@ -27,8 +27,19 @@ Set `OTEL_TRACES_ENABLED=false` to disable tracing (used in tests).
 1. `src/instrumentation.ts` bootstraps the OpenTelemetry SDK before Nest starts.
 2. Auto-instrumentation covers Express (inbound HTTP), `http`/`https` (outbound HTTP via axios), and `pg` (TypeORM queries).
 3. `TracingInterceptor` enriches each controller handler with a child span and stores context in `nestjs-cls`.
-4. `ResilientHttpClient` injects W3C headers on every outbound call.
+4. `ResilientHttpClient` injects W3C `traceparent` and the business `x-request-id` (from `ActorContextService`) on every outbound call when not already set by the caller.
 5. Pino logs include `traceId` and `spanId` when available.
+
+## Outbound propagation
+
+`ResilientHttpClient` forwards correlation context to downstream services:
+
+| Header | Source |
+|--------|--------|
+| `traceparent` | OpenTelemetry active span + `TraceContextService` |
+| `x-request-id` | `ActorContextService` (same ID as inbound request) |
+
+Explicit headers passed in `options.headers` take precedence over auto-injected values.
 
 ## APM integration
 
