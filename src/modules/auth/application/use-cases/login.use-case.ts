@@ -1,15 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { QueryRunner } from 'typeorm';
 import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../../users/application/ports/user.repository.port';
+import {
+  CommandUseCase,
+  ITransactionManager,
+  TRANSACTION_MANAGER,
+} from '../../../shared/application';
 import { InvalidCredentialsError } from '../../domain/errors/auth.errors';
 import {
   IRefreshTokenRepository,
   REFRESH_TOKEN_REPOSITORY,
 } from '../ports/refresh-token.repository.port';
-import { CommandUseCase } from '../../../shared/application/use-cases/command.use-case';
 import { PasswordService } from '../../infrastructure/services/password.service';
 import {
   TokenPair,
@@ -25,6 +30,8 @@ export type LoginCommand = {
 export class LoginUseCase extends CommandUseCase<LoginCommand, TokenPair> {
   constructor(
     logger: PinoLogger,
+    @Inject(TRANSACTION_MANAGER)
+    transactionManager: ITransactionManager,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly passwordService: PasswordService,
@@ -32,14 +39,13 @@ export class LoginUseCase extends CommandUseCase<LoginCommand, TokenPair> {
     @Inject(REFRESH_TOKEN_REPOSITORY)
     private readonly refreshTokenRepository: IRefreshTokenRepository,
   ) {
-    super(logger);
+    super(logger, transactionManager);
   }
 
-  protected requiresTransaction(): boolean {
-    return false;
-  }
-
-  protected async executeCommand(command: LoginCommand): Promise<TokenPair> {
+  protected async executeCommand(
+    command: LoginCommand,
+    trx?: QueryRunner,
+  ): Promise<TokenPair> {
     const user = await this.userRepository.findByEmail(command.email);
 
     if (
@@ -54,11 +60,14 @@ export class LoginUseCase extends CommandUseCase<LoginCommand, TokenPair> {
     );
     const refreshToken = this.tokenService.generateRefreshToken();
 
-    await this.refreshTokenRepository.save({
-      userId: user.id,
-      tokenHash: this.tokenService.hashRefreshToken(refreshToken),
-      expiresAt: this.tokenService.getRefreshTokenExpiresAt(),
-    });
+    await this.refreshTokenRepository.save(
+      {
+        userId: user.id,
+        tokenHash: this.tokenService.hashRefreshToken(refreshToken),
+        expiresAt: this.tokenService.getRefreshTokenExpiresAt(),
+      },
+      trx,
+    );
 
     return { accessToken, refreshToken, expiresIn };
   }

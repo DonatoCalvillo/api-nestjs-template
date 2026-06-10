@@ -1,10 +1,12 @@
 import { PinoLogger } from 'nestjs-pino';
+import { QueryRunner } from 'typeorm';
 import { LoginUseCase } from '../src/modules/auth/application/use-cases/login.use-case';
-import { IUserRepository } from '../src/modules/users/application/ports/user.repository.port';
 import { IRefreshTokenRepository } from '../src/modules/auth/application/ports/refresh-token.repository.port';
+import { InvalidCredentialsError } from '../src/modules/auth/domain/errors/auth.errors';
 import { PasswordService } from '../src/modules/auth/infrastructure/services/password.service';
 import { TokenService } from '../src/modules/auth/infrastructure/services/token.service';
-import { InvalidCredentialsError } from '../src/modules/auth/domain/errors/auth.errors';
+import { ITransactionManager } from '../src/modules/shared/application/ports/transaction-manager.port';
+import { IUserRepository } from '../src/modules/users/application/ports/user.repository.port';
 
 describe('LoginUseCase', () => {
   let useCase: LoginUseCase;
@@ -20,6 +22,9 @@ describe('LoginUseCase', () => {
       existsByEmail: jest.fn(),
       create: jest.fn(),
       findRoleIdsByNames: jest.fn(),
+      findById: jest.fn(),
+      save: jest.fn(),
+      findMany: jest.fn(),
     };
 
     passwordService = {
@@ -48,8 +53,13 @@ describe('LoginUseCase', () => {
       warn: jest.fn(),
     } as unknown as PinoLogger;
 
+    const transactionManager: ITransactionManager = {
+      run: jest.fn((work) => work({} as QueryRunner)),
+    };
+
     useCase = new LoginUseCase(
       logger,
+      transactionManager,
       userRepository,
       passwordService,
       tokenService,
