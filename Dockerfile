@@ -30,7 +30,10 @@ RUN pnpm run build && pnpm prune --prod --ignore-scripts
 FROM base AS production
 
 ENV NODE_ENV=production
-RUN apk add --no-cache dumb-init=1.2.5-r4
+RUN apk add --no-cache dumb-init=1.2.5-r4 \
+    && apk upgrade --no-cache \
+    && rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
