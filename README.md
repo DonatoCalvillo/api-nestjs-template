@@ -30,6 +30,136 @@ Inspired by projects of very important and knowledgeable people in the field suc
 
 - [Albert Hernandez](https://github.com/AlbertHernandez)
 
+## 🧱 Domain Models
+
+Domain models represent entities with identity (unlike value objects, which are compared by value). The template provides a base abstraction in `src/modules/shared/domain/model/` built on top of [`value-object-lib`](https://www.npmjs.com/package/value-object-lib).
+
+### What is included
+
+| Export | Description |
+|--------|-------------|
+| `IModel` | Contract for domain models (`id`, timestamps, `equals`, `toJSON`) |
+| `BaseModel` | Abstract base class with validated `id` and optional audit fields |
+| `BaseModelParams` | Constructor params: `id`, `props`, `createdAt?`, `updatedAt?` |
+| `toPrimitives` | Utility to serialize nested value objects to plain values |
+
+`BaseModel` validates the `id` as a UUID and optional dates via `UUIDValueObject` and `DateValueObject`. Invalid values throw a `ValueObjectValidationError` at construction time.
+
+### Recommended folder structure
+
+Place concrete models inside each feature module under `domain/`:
+
+```
+src/modules/users/
+└── domain/
+    └── models/
+        └── user.model.ts
+```
+
+### Step 1 — Define props with value objects
+
+Use value objects from `value-object-lib` to encapsulate validation inside your domain. Define the props type in the same file as your model (or in a dedicated `user.props.ts`):
+
+```typescript
+// src/modules/users/domain/models/user.model.ts
+import {
+  EmailValueObject,
+  NonEmptyStringValueObject,
+} from 'value-object-lib';
+
+export type UserProps = {
+  name: NonEmptyStringValueObject;
+  email: EmailValueObject;
+};
+```
+
+Available value objects include `StringValueObject`, `NonEmptyStringValueObject`, `EmailValueObject`, `UUIDValueObject`, `DateValueObject`, `NumberValueObject`, `PositiveNumberValueObject`, `NonNegativeNumberValueObject`, `BooleanValueObject`, `PhoneNumberValueObject`, and `EnumValueObject`.
+
+### Step 2 — Extend `BaseModel`
+
+In the same file, extend `BaseModel` and expose getters for the domain data:
+
+```typescript
+import {
+  BaseModel,
+  BaseModelParams,
+} from '../../shared/domain/model';
+
+export class UserModel extends BaseModel<UserProps> {
+  constructor(params: BaseModelParams<UserProps>) {
+    super(params);
+  }
+
+  get name(): string {
+    return this.props.name.value;
+  }
+
+  get email(): string {
+    return this.props.email.value;
+  }
+}
+```
+
+Expose domain data through getters instead of returning raw value objects to outer layers.
+
+### Step 3 — Create an instance
+
+```typescript
+import { randomUUID } from 'crypto';
+import { EmailValueObject, NonEmptyStringValueObject } from 'value-object-lib';
+import { UserModel } from './user.model';
+
+const user = new UserModel({
+  id: randomUUID(),
+  props: {
+    name: new NonEmptyStringValueObject('name', 'Edgar'),
+    email: new EmailValueObject('email', 'edgar@example.com'),
+  },
+  createdAt: new Date(),
+  updatedAt: null,
+});
+```
+
+`createdAt` and `updatedAt` are optional and default to `null`. When provided, they are validated as dates; when `null`, no `DateValueObject` is created.
+
+### Step 4 — Compare and serialize
+
+```typescript
+// Identity comparison (same id = same entity)
+user.equals(otherUser);
+
+// Flat object for persistence, mappers, or API responses
+user.toJSON();
+// {
+//   name: 'Edgar',
+//   email: 'edgar@example.com',
+//   id: '3f2504e0-4f89-11d3-9a0c-0305e82c3301',
+//   createdAt: Date,
+//   updatedAt: null,
+// }
+```
+
+`toJSON()` automatically unwraps nested value objects in `props` using `toPrimitives`.
+
+### Factory methods (recommended)
+
+For complex creation logic, prefer a static factory over calling `new` from application layers:
+
+```typescript
+export class UserModel extends BaseModel<UserProps> {
+  static create(name: string, email: string): UserModel {
+    return new UserModel({
+      id: randomUUID(),
+      props: {
+        name: new NonEmptyStringValueObject('name', name),
+        email: new EmailValueObject('email', email),
+      },
+      createdAt: new Date(),
+    });
+  }
+}
+```
+
 ## 🧑‍💻 Developing
 
 First we need to download the repository

@@ -47,6 +47,9 @@ importers:
       typeorm:
         specifier: 0.3.30
         version: 0.3.30(pg@8.21.0)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      value-object-lib:
+        specifier: ^1.0.0
+        version: 1.0.0
     devDependencies:
       '@commitlint/cli':
         specifier: 21.0.2
@@ -3475,6 +3478,9 @@ packages:
   v8-to-istanbul@9.3.0:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
     engines: {node: '>=10.12.0'}
+
+  value-object-lib@1.0.0:
+    resolution: {integrity: sha512-AGRof00vEy6l+45LrNjqabSbbTsVGYzMf++QfGdTUYpnSk4HpwoYZJ9bbvJqrgPSVS4FJ8DErlwK2n8Q/mf9BA==}
 
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
@@ -7336,6 +7342,8 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
+
+  value-object-lib@1.0.0: {}
 
   vary@1.1.2: {}
 
