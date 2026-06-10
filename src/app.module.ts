@@ -16,6 +16,7 @@ import { loggerOptions } from './configuration/logger';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
 import { HttpExceptionFilter } from './modules/shared/infrastructure/filters/http-exception.filter';
 import { TracingInterceptor } from './modules/shared/infrastructure/tracing';
+import { MetricsModule } from './modules/shared/infrastructure/metrics';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { TracingInterceptor } from './modules/shared/infrastructure/tracing';
       },
     ]),
     HealthyModule,
+    ...(ENVIRONMENT_VARIABLES.METRICS_ENABLED ? [MetricsModule] : []),
   ],
   controllers: [],
   providers: [

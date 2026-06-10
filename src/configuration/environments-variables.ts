@@ -38,6 +38,7 @@ interface EnvironmentVariables {
   OTEL_TRACES_ENABLED: boolean;
   OTEL_SERVICE_NAME: string;
   OTEL_EXPORTER_OTLP_ENDPOINT: string;
+  METRICS_ENABLED: boolean;
 }
 
 const environmentSchema = joi
@@ -73,6 +74,7 @@ const environmentSchema = joi
     OTEL_EXPORTER_OTLP_ENDPOINT: joi
       .string()
       .default('http://localhost:4318/v1/traces'),
+    METRICS_ENABLED: booleanEnv(true),
   })
   .unknown();
 
@@ -112,4 +114,5 @@ export const ENVIRONMENT_VARIABLES = {
   OTEL_TRACES_ENABLED: environmentVariables.OTEL_TRACES_ENABLED,
   OTEL_SERVICE_NAME: environmentVariables.OTEL_SERVICE_NAME,
   OTEL_EXPORTER_OTLP_ENDPOINT: environmentVariables.OTEL_EXPORTER_OTLP_ENDPOINT,
+  METRICS_ENABLED: environmentVariables.METRICS_ENABLED,
 };

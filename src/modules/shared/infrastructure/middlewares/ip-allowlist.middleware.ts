@@ -10,7 +10,10 @@ export class IpAllowlistMiddleware implements NestMiddleware {
       return;
     }
 
-    if (req.method === 'GET' && req.path === '/healthy') {
+    if (
+      req.method === 'GET' &&
+      (req.path === '/healthy' || req.path === '/metrics')
+    ) {
       next();
       return;
     }
