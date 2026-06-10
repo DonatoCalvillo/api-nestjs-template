@@ -1,13 +1,16 @@
-import { Controller, Get, Logger, Req, Res } from '@nestjs/common';
+import { Controller, Get, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { PinoLogger } from 'nestjs-pino';
 
 @Controller('healthy')
 export class HealthyController {
-  private readonly logger: Logger = new Logger(HealthyController.name);
+  constructor(private readonly logger: PinoLogger) {
+    this.logger.setContext(HealthyController.name);
+  }
 
   @Get()
   public async run(@Req() req: Request, @Res() res: Response) {
-    this.logger.log(`Healthy check request coming from: ${req.ip}`);
+    this.logger.info(`Healthy check request coming from: ${req.ip}`);
     res.status(204).send();
   }
 }

@@ -3,8 +3,16 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testTimeout: 100000,
+  setupFiles: ['<rootDir>/test/setup-env.ts'],
   transform: {
-    '^.+\\.(t|j)s?$': 'ts-jest',
+    '^.+\\.(t|j)s?$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          types: ['jest', 'node'],
+        },
+      },
+    ],
   },
   testMatch: [
     '**/tests/**/*.+(ts|tsx|js)',

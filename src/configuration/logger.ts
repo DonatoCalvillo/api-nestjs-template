@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { IncomingMessage } from 'http';
 import { REQUEST_ID_HEADER } from '../modules/shared/infrastructure/middlewares/request-id.middleware';
 
 export const loggerOptions = {
@@ -11,9 +11,11 @@ export const loggerOptions = {
       },
     },
     messageKey: 'message',
-    customProps(req: Request) {
+    customProps(req: IncomingMessage) {
       return {
-        requestId: req[REQUEST_ID_HEADER],
+        requestId: (req as IncomingMessage & Record<string, string>)[
+          REQUEST_ID_HEADER
+        ],
       };
     },
     autoLogging: false,
