@@ -14,7 +14,7 @@ const parseBoolean = (
 
 export const getTracingConfig = (): TracingConfig => ({
   enabled: parseBoolean(process.env.OTEL_TRACES_ENABLED, true),
-  serviceName: process.env.OTEL_SERVICE_NAME ?? 'dodo-schedule-api',
+  serviceName: process.env.OTEL_SERVICE_NAME ?? 'nestjs-api-template',
   otlpEndpoint:
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??
     'http://localhost:4318/v1/traces',

@@ -56,6 +56,7 @@ interface EnvironmentVariables {
   OUTBOX_STALE_PROCESSING_SECONDS: number;
   MESSAGE_BROKER_ADAPTER: 'noop' | 'logging';
   SWAGGER_ENABLED: boolean;
+  APP_NAME: string;
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
   JWT_ACCESS_EXPIRES_IN: string;
@@ -72,6 +73,25 @@ interface EnvironmentVariables {
   HTTP_BODY_LIMIT: string;
   HTTP_REQUEST_TIMEOUT_MS: number;
   LOG_LEVEL: string;
+  APP_ENCRYPTION_KEY: string;
+  REQUIRE_EMAIL_VERIFICATION: boolean;
+  EMAIL_VERIFICATION_TTL_HOURS: number;
+  PASSWORD_RESET_TTL_HOURS: number;
+  MFA_TOKEN_EXPIRES_IN: string;
+  OIDC_ENABLED: boolean;
+  OIDC_GOOGLE_ISSUER: string;
+  OIDC_GOOGLE_CLIENT_ID: string;
+  OIDC_GOOGLE_CLIENT_SECRET: string;
+  OIDC_GOOGLE_REDIRECT_URI: string;
+  CACHE_ENABLED: boolean;
+  CACHE_TTL_SECONDS: number;
+  API_KEYS_ENABLED: boolean;
+  STORAGE_DRIVER: 'local' | 's3';
+  STORAGE_LOCAL_PATH: string;
+  S3_BUCKET: string;
+  S3_REGION: string;
+  S3_ENDPOINT?: string;
+  PROBLEM_TYPE_BASE_URL: string;
 }
 
 const environmentSchema = joi
@@ -101,7 +121,11 @@ const environmentSchema = joi
       otherwise: joi.when('OUTBOX_RELAY_LOCK', {
         is: 'redis',
         then: joi.required(),
-        otherwise: joi.optional(),
+        otherwise: joi.when('CACHE_ENABLED', {
+          is: true,
+          then: joi.required(),
+          otherwise: joi.optional(),
+        }),
       }),
     }),
     OUTBOX_RELAY_LOCK_TTL_SECONDS: joi.number().min(1).default(120),
@@ -116,7 +140,7 @@ const environmentSchema = joi
     HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD: joi.number().default(5),
     HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS: joi.number().default(30000),
     OTEL_TRACES_ENABLED: booleanEnv(true),
-    OTEL_SERVICE_NAME: joi.string().default('dodo-schedule-api'),
+    OTEL_SERVICE_NAME: joi.string().default('nestjs-api-template'),
     OTEL_EXPORTER_OTLP_ENDPOINT: joi
       .string()
       .default('http://localhost:4318/v1/traces'),
@@ -138,6 +162,7 @@ const environmentSchema = joi
       .valid('noop', 'logging')
       .default('noop'),
     SWAGGER_ENABLED: booleanEnv(process.env.NODE_ENV === 'development'),
+    APP_NAME: joi.string().default('NestJS API Template'),
     JWT_ACCESS_SECRET: joi.string().when('NODE_ENV', {
       is: 'production',
       then: joi.string().min(32).required(),
@@ -169,6 +194,35 @@ const environmentSchema = joi
       .string()
       .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
       .default('info'),
+    APP_ENCRYPTION_KEY: joi.string().when('NODE_ENV', {
+      is: 'production',
+      then: joi.string().min(32).required(),
+      otherwise: joi
+        .string()
+        .default('dev-encryption-key-change-in-production-32chars'),
+    }),
+    REQUIRE_EMAIL_VERIFICATION: booleanEnv(false),
+    EMAIL_VERIFICATION_TTL_HOURS: joi.number().min(1).default(24),
+    PASSWORD_RESET_TTL_HOURS: joi.number().min(1).default(1),
+    MFA_TOKEN_EXPIRES_IN: joi.string().default('5m'),
+    OIDC_ENABLED: booleanEnv(false),
+    OIDC_GOOGLE_ISSUER: joi.string().default('https://accounts.google.com'),
+    OIDC_GOOGLE_CLIENT_ID: joi.string().allow('').default(''),
+    OIDC_GOOGLE_CLIENT_SECRET: joi.string().allow('').default(''),
+    OIDC_GOOGLE_REDIRECT_URI: joi
+      .string()
+      .default('http://localhost:3000/api/v1/auth/oidc/google/callback'),
+    CACHE_ENABLED: booleanEnv(false),
+    CACHE_TTL_SECONDS: joi.number().min(1).default(300),
+    API_KEYS_ENABLED: booleanEnv(true),
+    STORAGE_DRIVER: joi.string().valid('local', 's3').default('local'),
+    STORAGE_LOCAL_PATH: joi.string().default('./uploads'),
+    S3_BUCKET: joi.string().allow('').default(''),
+    S3_REGION: joi.string().default('us-east-1'),
+    S3_ENDPOINT: joi.string().optional(),
+    PROBLEM_TYPE_BASE_URL: joi
+      .string()
+      .default('https://api.example.com/problems/'),
   })
   .unknown();
 
@@ -238,6 +292,7 @@ export const ENVIRONMENT_VARIABLES = {
     environmentVariables.OUTBOX_STALE_PROCESSING_SECONDS,
   MESSAGE_BROKER_ADAPTER: environmentVariables.MESSAGE_BROKER_ADAPTER,
   SWAGGER_ENABLED: environmentVariables.SWAGGER_ENABLED,
+  APP_NAME: environmentVariables.APP_NAME,
   JWT_ACCESS_SECRET: environmentVariables.JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET: environmentVariables.JWT_REFRESH_SECRET,
   JWT_ACCESS_EXPIRES_IN: environmentVariables.JWT_ACCESS_EXPIRES_IN,
@@ -254,8 +309,29 @@ export const ENVIRONMENT_VARIABLES = {
   HTTP_BODY_LIMIT: environmentVariables.HTTP_BODY_LIMIT,
   HTTP_REQUEST_TIMEOUT_MS: environmentVariables.HTTP_REQUEST_TIMEOUT_MS,
   LOG_LEVEL: environmentVariables.LOG_LEVEL,
+  APP_ENCRYPTION_KEY: environmentVariables.APP_ENCRYPTION_KEY,
+  REQUIRE_EMAIL_VERIFICATION: environmentVariables.REQUIRE_EMAIL_VERIFICATION,
+  EMAIL_VERIFICATION_TTL_HOURS:
+    environmentVariables.EMAIL_VERIFICATION_TTL_HOURS,
+  PASSWORD_RESET_TTL_HOURS: environmentVariables.PASSWORD_RESET_TTL_HOURS,
+  MFA_TOKEN_EXPIRES_IN: environmentVariables.MFA_TOKEN_EXPIRES_IN,
+  OIDC_ENABLED: environmentVariables.OIDC_ENABLED,
+  OIDC_GOOGLE_ISSUER: environmentVariables.OIDC_GOOGLE_ISSUER,
+  OIDC_GOOGLE_CLIENT_ID: environmentVariables.OIDC_GOOGLE_CLIENT_ID,
+  OIDC_GOOGLE_CLIENT_SECRET: environmentVariables.OIDC_GOOGLE_CLIENT_SECRET,
+  OIDC_GOOGLE_REDIRECT_URI: environmentVariables.OIDC_GOOGLE_REDIRECT_URI,
+  CACHE_ENABLED: environmentVariables.CACHE_ENABLED,
+  CACHE_TTL_SECONDS: environmentVariables.CACHE_TTL_SECONDS,
+  API_KEYS_ENABLED: environmentVariables.API_KEYS_ENABLED,
+  STORAGE_DRIVER: environmentVariables.STORAGE_DRIVER,
+  STORAGE_LOCAL_PATH: environmentVariables.STORAGE_LOCAL_PATH,
+  S3_BUCKET: environmentVariables.S3_BUCKET,
+  S3_REGION: environmentVariables.S3_REGION,
+  S3_ENDPOINT: environmentVariables.S3_ENDPOINT,
+  PROBLEM_TYPE_BASE_URL: environmentVariables.PROBLEM_TYPE_BASE_URL,
 };
 
 export const isRedisEnabled = (): boolean =>
   ENVIRONMENT_VARIABLES.THROTTLE_STORAGE === 'redis' ||
-  ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK === 'redis';
+  ENVIRONMENT_VARIABLES.OUTBOX_RELAY_LOCK === 'redis' ||
+  ENVIRONMENT_VARIABLES.CACHE_ENABLED;

@@ -1,0 +1,49 @@
+groups:
+  - name: api-business-alerts
+    rules:
+      - alert: OutboxBacklogHigh
+        expr: sum(outbox_messages_pending{status="pending"}) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Outbox backlog above threshold
+          description: More than 100 pending outbox messages for 5 minutes.
+
+      - alert: OutboxFailuresSpiking
+        expr: rate(outbox_messages_failed_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Outbox publish failures increasing
+          description: Check broker connectivity and outbox relay logs.
+
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Circuit breaker open for {{ $labels.circuit_breaker_key }}
+          description: External service calls are being rejected by the circuit breaker.
+
+      - alert: AuditWriteErrors
+        expr: rate(audit_log_write_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Audit log writes failing
+          description: Inspect database connectivity and audit_logs table constraints.
+
+      - alert: HighHttp5xxRate
+        expr: |
+          sum(rate(http_errors_total{status_class="5xx"}[5m]))
+          / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: HTTP 5xx rate above 5%
+          description: Check application logs filtered by requestId and traceId.

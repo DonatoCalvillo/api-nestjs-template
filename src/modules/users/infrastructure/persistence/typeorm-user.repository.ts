@@ -8,6 +8,7 @@ import { TypeOrmBaseRepository } from '../../../shared/infrastructure/persistenc
 import {
   CreateUserParams,
   IUserRepository,
+  SaveUserContext,
 } from '../../application/ports/user.repository.port';
 import { User } from '../../domain/models/user.model';
 import {
@@ -61,6 +62,17 @@ export class TypeOrmUserRepository
     };
   }
 
+  private toUserAuthData(entity: UserEntity): UserAuthData {
+    return {
+      ...this.toAuthenticatedUser(entity),
+      passwordHash: entity.passwordHash,
+      emailVerifiedAt: entity.emailVerifiedAt,
+      mfaEnabled: entity.mfaEnabled,
+      totpSecretEncrypted: entity.totpSecretEncrypted,
+      mfaPendingSecretEncrypted: entity.mfaPendingSecretEncrypted,
+    };
+  }
+
   async findByEmail(email: string): Promise<UserAuthData | null> {
     const entity = await this.getUserRepo().findOne({
       where: { email },
@@ -71,10 +83,7 @@ export class TypeOrmUserRepository
       return null;
     }
 
-    return {
-      ...this.toAuthenticatedUser(entity),
-      passwordHash: entity.passwordHash,
-    };
+    return this.toUserAuthData(entity);
   }
 
   async findByIdWithRolesAndPermissions(
@@ -91,6 +100,56 @@ export class TypeOrmUserRepository
   async existsByEmail(email: string): Promise<boolean> {
     const count = await this.getUserRepo().count({ where: { email } });
     return count > 0;
+  }
+
+  async findAuthDataById(id: string): Promise<UserAuthData | null> {
+    const entity = await this.getUserRepo().findOne({
+      where: { id },
+      relations: { roles: { permissions: true } },
+    });
+
+    return entity ? this.toUserAuthData(entity) : null;
+  }
+
+  async markEmailVerified(userId: string, trx?: QueryRunner): Promise<void> {
+    await this.getUserRepo(trx).update(
+      { id: userId },
+      { emailVerifiedAt: new Date() },
+    );
+  }
+
+  async updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+    trx?: QueryRunner,
+  ): Promise<void> {
+    await this.getUserRepo(trx).update({ id: userId }, { passwordHash });
+  }
+
+  async setMfaPendingSecret(
+    userId: string,
+    encryptedSecret: string,
+    trx?: QueryRunner,
+  ): Promise<void> {
+    await this.getUserRepo(trx).update(
+      { id: userId },
+      { mfaPendingSecretEncrypted: encryptedSecret },
+    );
+  }
+
+  async enableMfa(
+    userId: string,
+    encryptedSecret: string,
+    trx?: QueryRunner,
+  ): Promise<void> {
+    await this.getUserRepo(trx).update(
+      { id: userId },
+      {
+        mfaEnabled: true,
+        totpSecretEncrypted: encryptedSecret,
+        mfaPendingSecretEncrypted: null,
+      },
+    );
   }
 
   async findRoleIdsByNames(
@@ -127,7 +186,11 @@ export class TypeOrmUserRepository
     return this.mapper.toModel(saved);
   }
 
-  async save(user: User, trx?: QueryRunner): Promise<User> {
+  async save(
+    user: User,
+    trx?: QueryRunner,
+    context?: SaveUserContext,
+  ): Promise<User> {
     const repo = this.getUserRepo(trx);
     const existing = await repo.findOne({
       where: { id: user.id },
@@ -139,10 +202,33 @@ export class TypeOrmUserRepository
     if (existing) {
       entity.passwordHash = existing.passwordHash;
       entity.roles = existing.roles;
+    } else if (context?.passwordHash) {
+      entity.passwordHash = context.passwordHash;
+
+      if (context.roleNames?.length) {
+        const roleRepo = this.getRoleRepo(trx);
+        const roles = await roleRepo.find({
+          where: { name: In(context.roleNames) },
+          relations: { permissions: true },
+        });
+
+        if (roles.length !== context.roleNames.length) {
+          const missing = context.roleNames.filter(
+            (name) => !roles.some((role) => role.name === name),
+          );
+          throw new Error(`Missing roles: ${missing.join(', ')}`);
+        }
+
+        entity.roles = roles;
+      }
     }
 
     const saved = await repo.save(entity);
     return this.mapper.toModel(saved);
+  }
+
+  async deleteById(id: string, trx?: QueryRunner): Promise<void> {
+    await this.getUserRepo(trx).delete({ id });
   }
 
   async findMany(

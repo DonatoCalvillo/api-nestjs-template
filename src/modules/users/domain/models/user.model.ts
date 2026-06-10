@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { EmailValueObject, NonEmptyStringValueObject } from 'value-object-lib';
 import { AggregateRoot } from '../../../shared/domain/model';
 import { BaseModelParams } from '../../../shared/domain/model/model.interface';
+import { UserCreatedEvent } from '../events/user-created.event';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 
 export type UserProps = {
@@ -19,6 +21,22 @@ export class User extends AggregateRoot<UserProps> {
 
   get email(): string {
     return this.props.email.value;
+  }
+
+  static create(params: { id?: string; name: string; email: string }): User {
+    const user = new User({
+      id: params.id ?? randomUUID(),
+      props: {
+        name: new NonEmptyStringValueObject('name', params.name),
+        email: new EmailValueObject('email', params.email),
+      },
+    });
+
+    user.addDomainEvent(
+      new UserCreatedEvent(user.id, params.email, params.name),
+    );
+
+    return user;
   }
 
   update(params: { name?: string; email?: string }): User {

@@ -17,15 +17,38 @@ export type CreateUserParams = {
   roleNames: string[];
 };
 
+export type SaveUserContext = {
+  passwordHash?: string;
+  roleNames?: string[];
+};
+
 export interface IUserRepository {
   findByEmail(email: string): Promise<UserAuthData | null>;
   findByIdWithRolesAndPermissions(
     id: string,
   ): Promise<AuthenticatedUser | null>;
   existsByEmail(email: string): Promise<boolean>;
+  findAuthDataById(id: string): Promise<UserAuthData | null>;
+  markEmailVerified(userId: string, trx?: QueryRunner): Promise<void>;
+  updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+    trx?: QueryRunner,
+  ): Promise<void>;
+  setMfaPendingSecret(
+    userId: string,
+    encryptedSecret: string,
+    trx?: QueryRunner,
+  ): Promise<void>;
+  enableMfa(
+    userId: string,
+    encryptedSecret: string,
+    trx?: QueryRunner,
+  ): Promise<void>;
   create(params: CreateUserParams, trx?: QueryRunner): Promise<User>;
   findRoleIdsByNames(names: string[], trx?: QueryRunner): Promise<string[]>;
   findById(id: string, options?: FindByIdOptions): Promise<User | null>;
-  save(user: User, trx?: QueryRunner): Promise<User>;
+  save(user: User, trx?: QueryRunner, context?: SaveUserContext): Promise<User>;
+  deleteById(id: string, trx?: QueryRunner): Promise<void>;
   findMany(options?: QueryOptions<UserEntity>): Promise<PaginatedResult<User>>;
 }

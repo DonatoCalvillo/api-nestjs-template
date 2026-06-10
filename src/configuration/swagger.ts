@@ -10,7 +10,7 @@ import { ENVIRONMENT_VARIABLES } from './environments-variables';
 
 const createSwaggerConfig = () =>
   new DocumentBuilder()
-    .setTitle('NestJS API Template')
+    .setTitle(ENVIRONMENT_VARIABLES.APP_NAME)
     .setDescription('REST API documentation')
     .setVersion(API_VERSION)
     .addServer(
@@ -18,6 +18,10 @@ const createSwaggerConfig = () =>
       'Local development',
     )
     .addTag('auth', 'Authentication and session management')
+    .addTag('users', 'User profiles and administration')
+    .addTag('admin', 'Administrative operations')
+    .addTag('internal', 'Service-to-service endpoints')
+    .addTag('files', 'File uploads')
     .addTag('health', 'Health probes for orchestrators and load balancers')
     .addBearerAuth(
       {

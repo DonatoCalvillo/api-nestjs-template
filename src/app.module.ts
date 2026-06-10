@@ -21,13 +21,16 @@ import { MetricsIpAllowlistMiddleware } from './modules/shared/infrastructure/mi
 import { METRICS_PATH } from './modules/shared/infrastructure/metrics/metrics.constants';
 import { ConditionalThrottlerGuard } from './modules/shared/infrastructure/guards/conditional-throttler.guard';
 import { AuthModule } from './modules/auth/auth.module';
+import { FilesModule } from './modules/files/files.module';
 import { HealthyModule } from './modules/healthy/healthy.module';
 import { SharedModule } from './modules/shared/shared.module';
+import { AppCacheModule } from './modules/shared/infrastructure/cache/app-cache.module';
 import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './modules/auth/infrastructure/guards/jwt-auth.guard';
 import { PermissionsGuard } from './modules/auth/infrastructure/guards/permissions.guard';
 import { RolesGuard } from './modules/auth/infrastructure/guards/roles.guard';
 import { loggerOptions } from './configuration/logger';
+import { ALL_ROUTES_WILDCARD } from './configuration/api.constants';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
 import { buildThrottlerModuleOptions } from './configuration/throttler.config';
 import { HttpExceptionFilter } from './modules/shared/infrastructure/filters/http-exception.filter';
@@ -50,6 +53,7 @@ import {
       middleware: { mount: false },
     }),
     RedisModule.forRoot(),
+    AppCacheModule.forRoot(),
     SharedModule,
     TypeOrmModule.forRoot(dataSourceOptions),
     LoggerModule.forRoot(loggerOptions),
@@ -60,6 +64,7 @@ import {
     HealthyModule,
     UsersModule,
     AuthModule,
+    FilesModule,
     ...(ENVIRONMENT_VARIABLES.METRICS_ENABLED ? [MetricsModule] : []),
   ],
   controllers: [],
@@ -105,7 +110,7 @@ import {
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(ClsMiddleware).forRoutes('*');
+    consumer.apply(ClsMiddleware).forRoutes(ALL_ROUTES_WILDCARD);
 
     consumer
       .apply(MetricsIpAllowlistMiddleware)
@@ -118,6 +123,6 @@ export class AppModule implements NestModule {
         RequestIdMiddleware,
         RequestContextMiddleware,
       )
-      .forRoutes('*');
+      .forRoutes(ALL_ROUTES_WILDCARD);
   }
 }

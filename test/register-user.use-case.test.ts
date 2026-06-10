@@ -12,6 +12,8 @@ import { User } from '../src/modules/users/domain/models/user.model';
 
 const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
 
+import { createMockUserRepository } from './helpers/mock-user-repository';
+
 describe('RegisterUserUseCase', () => {
   let useCase: RegisterUserUseCase;
   let userRepository: jest.Mocked<IUserRepository>;
@@ -20,16 +22,7 @@ describe('RegisterUserUseCase', () => {
   let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findByIdWithRolesAndPermissions: jest.fn(),
-      existsByEmail: jest.fn(),
-      create: jest.fn(),
-      findRoleIdsByNames: jest.fn(),
-      findById: jest.fn(),
-      save: jest.fn(),
-      findMany: jest.fn(),
-    };
+    userRepository = createMockUserRepository();
 
     passwordService = {
       compare: jest.fn(),
@@ -76,7 +69,7 @@ describe('RegisterUserUseCase', () => {
   it('registers a user and returns tokens', async () => {
     userRepository.existsByEmail.mockResolvedValue(false);
     passwordService.hash.mockResolvedValue('password-hash');
-    userRepository.create.mockResolvedValue(
+    userRepository.save.mockResolvedValue(
       new User({
         id: USER_ID,
         props: {
@@ -101,14 +94,13 @@ describe('RegisterUserUseCase', () => {
       name: 'Alice',
     });
 
-    expect(userRepository.create).toHaveBeenCalled();
+    expect(userRepository.save).toHaveBeenCalled();
     expect(refreshTokenRepository.save).toHaveBeenCalled();
     expect(result.isSuccess).toBe(true);
-    expect(result.value).toEqual({
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-      expiresIn: '15m',
-    });
+    expect(result.value?.accessToken).toBe('access-token');
+    expect(result.value?.refreshToken).toBe('refresh-token');
+    expect(result.value?.expiresIn).toBe('15m');
+    expect(result.value?.user).toBeDefined();
   });
 
   it('fails when email already exists', async () => {

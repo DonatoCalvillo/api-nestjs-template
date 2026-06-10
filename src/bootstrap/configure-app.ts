@@ -63,7 +63,8 @@ export const configureApp = (app: INestApplication): void => {
   app.setGlobalPrefix(API_GLOBAL_PREFIX, {
     exclude: [
       { path: 'health', method: RequestMethod.ALL },
-      { path: 'health/(.*)', method: RequestMethod.ALL },
+      { path: 'health/live', method: RequestMethod.ALL },
+      { path: 'health/ready', method: RequestMethod.ALL },
       { path: 'metrics', method: RequestMethod.GET },
       { path: SWAGGER_PATH, method: RequestMethod.ALL },
       { path: `${SWAGGER_PATH}-json`, method: RequestMethod.GET },

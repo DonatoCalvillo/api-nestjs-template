@@ -12,6 +12,8 @@ import { ConcurrencyConflictError } from '../src/modules/shared/domain/errors/co
 import { NotFoundError } from '../src/modules/shared/domain/errors/not-found.error';
 import { ITransactionManager } from '../src/modules/shared/application/ports/transaction-manager.port';
 
+import { createMockUserRepository } from './helpers/mock-user-repository';
+
 const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_USER_ID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
@@ -35,16 +37,7 @@ describe('UpdateUserUseCase', () => {
   let userRepository: jest.Mocked<IUserRepository>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findByIdWithRolesAndPermissions: jest.fn(),
-      existsByEmail: jest.fn(),
-      create: jest.fn(),
-      findRoleIdsByNames: jest.fn(),
-      findById: jest.fn(),
-      save: jest.fn(),
-      findMany: jest.fn(),
-    };
+    userRepository = createMockUserRepository();
 
     const logger = {
       setContext: jest.fn(),
@@ -83,7 +76,7 @@ describe('UpdateUserUseCase', () => {
     expect(result.isSuccess).toBe(true);
   });
 
-  it('fails when actor is neither owner nor admin', async () => {
+  it('fails when actor is neither owner nor has users:write', async () => {
     const result = await useCase.execute({
       id: OTHER_USER_ID,
       name: 'Hacker',

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { QueryRunner } from 'typeorm';
-import { RBAC_ROLES } from '../../../auth/domain/constants/rbac.constants';
+import { RBAC_PERMISSIONS } from '../../../auth/domain/constants/rbac.constants';
 import {
   EmailAlreadyExistsError,
   ForbiddenAccessError,
@@ -61,9 +61,11 @@ export class UpdateUserUseCase extends CommandUseCase<UpdateUserCommand, User> {
     trx?: QueryRunner,
   ): Promise<User> {
     const isOwner = command.actor.id === command.id;
-    const isAdmin = command.actor.roles.includes(RBAC_ROLES.ADMIN);
+    const canWrite = command.actor.permissions.includes(
+      RBAC_PERMISSIONS.USERS_WRITE,
+    );
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !canWrite) {
       throw new ForbiddenAccessError();
     }
 

@@ -1,0 +1,63 @@
+replicaCount: 2
+
+image:
+  repository: nestjs-api-template
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: api.example.com
+  tls: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+env:
+  NODE_ENV: production
+  PORT: "3000"
+  SWAGGER_ENABLED: "false"
+  METRICS_ENABLED: "true"
+  CACHE_ENABLED: "false"
+  OIDC_ENABLED: "false"
+  API_KEYS_ENABLED: "true"
+
+database:
+  host: postgres.example.svc.cluster.local
+  port: 5432
+  name: postgres
+  username: postgres
+  existingSecret: nestjs-api-template-secrets
+  passwordKey: db-password
+
+redis:
+  url: redis://redis.example.svc.cluster.local:6379
+
+secrets:
+  jwtAccessSecret: change-me-minimum-32-characters-long
+  jwtRefreshSecret: change-me-minimum-32-characters-long
+  appEncryptionKey: change-me-minimum-32-characters-long
+
+prometheus:
+  scrape: true
+  path: /metrics
+  port: 3000
+
+migration:
+  enabled: false

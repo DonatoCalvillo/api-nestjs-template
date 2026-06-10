@@ -49,3 +49,27 @@ export class ForbiddenAccessError extends ForbiddenError {
     super(message);
   }
 }
+
+export class EmailNotVerifiedError extends UnauthorizedError {
+  readonly code: string = 'E-AUTH-007';
+
+  constructor() {
+    super('Email address is not verified');
+  }
+}
+
+export class InvalidAuthTokenError extends UnauthorizedError {
+  readonly code: string = 'E-AUTH-008';
+
+  constructor() {
+    super('Invalid or expired token');
+  }
+}
+
+export class InvalidMfaCodeError extends UnauthorizedError {
+  readonly code: string = 'E-AUTH-009';
+
+  constructor() {
+    super('Invalid MFA code');
+  }
+}

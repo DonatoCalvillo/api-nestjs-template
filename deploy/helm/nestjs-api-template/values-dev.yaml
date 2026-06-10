@@ -1,0 +1,23 @@
+replicaCount: 1
+
+ingress:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+env:
+  NODE_ENV: development
+  SWAGGER_ENABLED: "true"
+
+database:
+  host: db
+  existingSecret: ""
+
+secrets:
+  jwtAccessSecret: dev-access-secret-change-in-production-32chars
+  jwtRefreshSecret: dev-refresh-secret-change-in-production-32chars
+  appEncryptionKey: dev-encryption-key-change-in-production-32chars
+
+redis:
+  url: redis://redis:6379

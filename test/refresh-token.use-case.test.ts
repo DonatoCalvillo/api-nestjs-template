@@ -10,6 +10,8 @@ import { TokenService } from '../src/modules/auth/infrastructure/services/token.
 import { ITransactionManager } from '../src/modules/shared/application/ports/transaction-manager.port';
 import { IUserRepository } from '../src/modules/users/application/ports/user.repository.port';
 
+import { createMockUserRepository } from './helpers/mock-user-repository';
+
 describe('RefreshTokenUseCase', () => {
   let useCase: RefreshTokenUseCase;
   let userRepository: jest.Mocked<IUserRepository>;
@@ -18,16 +20,7 @@ describe('RefreshTokenUseCase', () => {
   let logger: jest.Mocked<PinoLogger>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findByIdWithRolesAndPermissions: jest.fn(),
-      existsByEmail: jest.fn(),
-      create: jest.fn(),
-      findRoleIdsByNames: jest.fn(),
-      findById: jest.fn(),
-      save: jest.fn(),
-      findMany: jest.fn(),
-    };
+    userRepository = createMockUserRepository();
 
     tokenService = {
       signAccessToken: jest.fn(),

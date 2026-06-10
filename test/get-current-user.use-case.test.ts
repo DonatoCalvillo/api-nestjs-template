@@ -5,6 +5,8 @@ import { IUserRepository } from '../src/modules/users/application/ports/user.rep
 import { NotFoundError } from '../src/modules/shared/domain/errors/not-found.error';
 import { User } from '../src/modules/users/domain/models/user.model';
 
+import { createMockUserRepository } from './helpers/mock-user-repository';
+
 const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
 
 describe('GetCurrentUserUseCase', () => {
@@ -12,16 +14,7 @@ describe('GetCurrentUserUseCase', () => {
   let userRepository: jest.Mocked<IUserRepository>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findByIdWithRolesAndPermissions: jest.fn(),
-      existsByEmail: jest.fn(),
-      create: jest.fn(),
-      findRoleIdsByNames: jest.fn(),
-      findById: jest.fn(),
-      save: jest.fn(),
-      findMany: jest.fn(),
-    };
+    userRepository = createMockUserRepository();
 
     const logger = {
       setContext: jest.fn(),

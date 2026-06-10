@@ -8,4 +8,8 @@ export type AuthenticatedUser = {
 
 export type UserAuthData = AuthenticatedUser & {
   passwordHash: string;
+  emailVerifiedAt: Date | null;
+  mfaEnabled: boolean;
+  totpSecretEncrypted: string | null;
+  mfaPendingSecretEncrypted: string | null;
 };

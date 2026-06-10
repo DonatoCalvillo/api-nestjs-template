@@ -13,6 +13,13 @@ export type AccessTokenPayload = {
   sub: string;
 };
 
+export type MfaTokenPayload = {
+  sub: string;
+  purpose: 'mfa';
+};
+
+export type LoginResult = TokenPair | { mfaRequired: true; mfaToken: string };
+
 @Injectable()
 export class TokenService {
   constructor(private readonly jwtService: JwtService) {}
@@ -58,5 +65,28 @@ export class TokenService {
     };
 
     return new Date(Date.now() + value * multipliers[unit]);
+  }
+
+  async signMfaToken(userId: string): Promise<string> {
+    const expiresIn = ENVIRONMENT_VARIABLES.MFA_TOKEN_EXPIRES_IN;
+    return this.jwtService.signAsync(
+      { sub: userId, purpose: 'mfa' } satisfies MfaTokenPayload,
+      {
+        secret: ENVIRONMENT_VARIABLES.JWT_ACCESS_SECRET,
+        expiresIn: expiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
+      },
+    );
+  }
+
+  async verifyMfaToken(token: string): Promise<string> {
+    const payload = await this.jwtService.verifyAsync<MfaTokenPayload>(token, {
+      secret: ENVIRONMENT_VARIABLES.JWT_ACCESS_SECRET,
+    });
+
+    if (payload.purpose !== 'mfa') {
+      throw new Error('Invalid MFA token');
+    }
+
+    return payload.sub;
   }
 }

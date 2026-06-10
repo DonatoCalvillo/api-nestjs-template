@@ -8,6 +8,8 @@ import { TokenService } from '../src/modules/auth/infrastructure/services/token.
 import { ITransactionManager } from '../src/modules/shared/application/ports/transaction-manager.port';
 import { IUserRepository } from '../src/modules/users/application/ports/user.repository.port';
 
+import { createMockUserRepository } from './helpers/mock-user-repository';
+
 describe('LoginUseCase', () => {
   let useCase: LoginUseCase;
   let userRepository: jest.Mocked<IUserRepository>;
@@ -16,16 +18,7 @@ describe('LoginUseCase', () => {
   let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findByIdWithRolesAndPermissions: jest.fn(),
-      existsByEmail: jest.fn(),
-      create: jest.fn(),
-      findRoleIdsByNames: jest.fn(),
-      findById: jest.fn(),
-      save: jest.fn(),
-      findMany: jest.fn(),
-    };
+    userRepository = createMockUserRepository();
 
     passwordService = {
       compare: jest.fn(),
@@ -77,6 +70,10 @@ describe('LoginUseCase', () => {
       roles: ['user'],
       permissions: ['users:read'],
       passwordHash: 'hash',
+      emailVerifiedAt: new Date(),
+      mfaEnabled: false,
+      totpSecretEncrypted: null,
+      mfaPendingSecretEncrypted: null,
     });
     passwordService.compare.mockResolvedValue(true);
     tokenService.signAccessToken.mockResolvedValue({

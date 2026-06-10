@@ -1,0 +1,30 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nestjs-api-template.fullname" . }}-migration
+  labels:
+    {{- include "nestjs-api-template.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migration
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["node", "dist/database/run-migrations.js"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "nestjs-api-template.fullname" . }}-config
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nestjs-api-template.fullname" . }}-secrets
+                  key: DB_PASSWORD
+            - name: DB_MIGRATIONS_RUN
+              value: "true"
+{{- end }}

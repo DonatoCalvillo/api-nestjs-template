@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nestjs-api-template.fullname" . }}-config
+  labels:
+    {{- include "nestjs-api-template.labels" . | nindent 4 }}
+data:
+  NODE_ENV: {{ .Values.env.NODE_ENV | quote }}
+  PORT: {{ .Values.env.PORT | quote }}
+  SWAGGER_ENABLED: {{ .Values.env.SWAGGER_ENABLED | quote }}
+  METRICS_ENABLED: {{ .Values.env.METRICS_ENABLED | quote }}
+  CACHE_ENABLED: {{ .Values.env.CACHE_ENABLED | quote }}
+  OIDC_ENABLED: {{ .Values.env.OIDC_ENABLED | quote }}
+  API_KEYS_ENABLED: {{ .Values.env.API_KEYS_ENABLED | quote }}
+  DB_HOST: {{ .Values.database.host | quote }}
+  DB_PORT: {{ .Values.database.port | quote }}
+  DB_USERNAME: {{ .Values.database.username | quote }}
+  DB_DATABASE: {{ .Values.database.name | quote }}
+  REDIS_URL: {{ .Values.redis.url | quote }}
+  OTEL_SERVICE_NAME: {{ include "nestjs-api-template.fullname" . | quote }}

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { QueryRunner } from 'typeorm';
+import { ENVIRONMENT_VARIABLES } from '../../../../configuration/environments-variables';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -10,14 +11,17 @@ import {
   ITransactionManager,
   TRANSACTION_MANAGER,
 } from '../../../shared/application';
-import { InvalidCredentialsError } from '../../domain/errors/auth.errors';
+import {
+  EmailNotVerifiedError,
+  InvalidCredentialsError,
+} from '../../domain/errors/auth.errors';
 import {
   IRefreshTokenRepository,
   REFRESH_TOKEN_REPOSITORY,
 } from '../ports/refresh-token.repository.port';
 import { PasswordService } from '../../infrastructure/services/password.service';
 import {
-  TokenPair,
+  LoginResult,
   TokenService,
 } from '../../infrastructure/services/token.service';
 
@@ -27,7 +31,7 @@ export type LoginCommand = {
 };
 
 @Injectable()
-export class LoginUseCase extends CommandUseCase<LoginCommand, TokenPair> {
+export class LoginUseCase extends CommandUseCase<LoginCommand, LoginResult> {
   constructor(
     logger: PinoLogger,
     @Inject(TRANSACTION_MANAGER)
@@ -45,7 +49,7 @@ export class LoginUseCase extends CommandUseCase<LoginCommand, TokenPair> {
   protected async executeCommand(
     command: LoginCommand,
     trx?: QueryRunner,
-  ): Promise<TokenPair> {
+  ): Promise<LoginResult> {
     const user = await this.userRepository.findByEmail(command.email);
 
     if (
@@ -53,6 +57,18 @@ export class LoginUseCase extends CommandUseCase<LoginCommand, TokenPair> {
       !(await this.passwordService.compare(command.password, user.passwordHash))
     ) {
       throw new InvalidCredentialsError();
+    }
+
+    if (
+      ENVIRONMENT_VARIABLES.REQUIRE_EMAIL_VERIFICATION &&
+      !user.emailVerifiedAt
+    ) {
+      throw new EmailNotVerifiedError();
+    }
+
+    if (user.mfaEnabled) {
+      const mfaToken = await this.tokenService.signMfaToken(user.id);
+      return { mfaRequired: true, mfaToken };
     }
 
     const { accessToken, expiresIn } = await this.tokenService.signAccessToken(

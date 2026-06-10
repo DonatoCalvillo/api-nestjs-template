@@ -2,21 +2,14 @@ import { PinoLogger } from 'nestjs-pino';
 import { ListUsersUseCase } from '../src/modules/users/application/use-cases/list-users.use-case';
 import { IUserRepository } from '../src/modules/users/application/ports/user.repository.port';
 
+import { createMockUserRepository } from './helpers/mock-user-repository';
+
 describe('ListUsersUseCase', () => {
   let useCase: ListUsersUseCase;
   let userRepository: jest.Mocked<IUserRepository>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findByIdWithRolesAndPermissions: jest.fn(),
-      existsByEmail: jest.fn(),
-      create: jest.fn(),
-      findRoleIdsByNames: jest.fn(),
-      findById: jest.fn(),
-      save: jest.fn(),
-      findMany: jest.fn(),
-    };
+    userRepository = createMockUserRepository();
 
     const logger = {
       setContext: jest.fn(),

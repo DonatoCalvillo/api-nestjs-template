@@ -1,5 +1,7 @@
+import { RequestMethod } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
 import { IncomingMessage } from 'http';
+import { ALL_ROUTES_WILDCARD } from './api.constants';
 import { REQUEST_ID_HEADER } from '../modules/shared/infrastructure/request-context';
 import {
   RequestWithTrace,
@@ -52,6 +54,7 @@ const getTraceFields = (req: RequestWithContext) => {
 const isProduction = ENVIRONMENT_VARIABLES.NODE_ENV === 'production';
 
 export const loggerOptions = {
+  forRoutes: [{ path: ALL_ROUTES_WILDCARD, method: RequestMethod.ALL }],
   pinoHttp: {
     ...(isProduction
       ? { level: ENVIRONMENT_VARIABLES.LOG_LEVEL }

@@ -13,6 +13,10 @@ import { ResponseDto } from '../../domain/response/response';
 import { isHealthProbePath } from '../metrics/metrics.constants';
 import { inferErrorCodeFromStatus } from '../response/http-status-code.util';
 import { buildResponseMeta } from '../response/response-meta.util';
+import {
+  acceptsProblemDetails,
+  toProblemDetails,
+} from '../response/problem-details.util';
 import { setResponseTraceHeaders } from '../response/response-headers.util';
 import { RequestWithTrace } from '../tracing/trace-context.constants';
 import { TraceContextService } from '../tracing/trace-context.service';
@@ -164,6 +168,27 @@ export class HttpExceptionFilter implements ExceptionFilter {
         },
         responseBody.message,
       );
+    }
+
+    const acceptHeader =
+      typeof request.header === 'function'
+        ? request.header('accept')
+        : request.headers?.accept;
+
+    if (acceptsProblemDetails(acceptHeader)) {
+      response
+        .status(status)
+        .type('application/problem+json')
+        .json(
+          toProblemDetails(
+            responseBody,
+            status,
+            requestPath,
+            meta.traceId,
+            meta.requestId,
+          ),
+        );
+      return;
     }
 
     response.status(status).json(responseBody);

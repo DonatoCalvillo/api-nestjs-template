@@ -6,6 +6,7 @@ import {
   PrometheusModule,
 } from '@willsoto/nestjs-prometheus';
 import { getMetricsConfig } from '../../../../configuration/metrics';
+import { ALL_ROUTES_WILDCARD } from '../../../../configuration/api.constants';
 import { BUSINESS_METRICS } from './business-metrics.port';
 import { PrometheusBusinessMetricsService } from './prometheus-business-metrics.service';
 import {
@@ -96,6 +97,6 @@ const metricsConfig = getMetricsConfig();
 })
 export class MetricsModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware).forRoutes(ALL_ROUTES_WILDCARD);
   }
 }

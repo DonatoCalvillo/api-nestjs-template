@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { QueryRunner } from 'typeorm';
+import { User } from '../../../users/domain/models/user.model';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -17,10 +18,7 @@ import {
   REFRESH_TOKEN_REPOSITORY,
 } from '../ports/refresh-token.repository.port';
 import { PasswordService } from '../../infrastructure/services/password.service';
-import {
-  TokenPair,
-  TokenService,
-} from '../../infrastructure/services/token.service';
+import { TokenService } from '../../infrastructure/services/token.service';
 
 export type RegisterUserCommand = {
   email: string;
@@ -28,10 +26,17 @@ export type RegisterUserCommand = {
   name: string;
 };
 
+export type RegisterUserResult = {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: string;
+};
+
 @Injectable()
 export class RegisterUserUseCase extends CommandUseCase<
   RegisterUserCommand,
-  TokenPair
+  RegisterUserResult
 > {
   constructor(
     logger: PinoLogger,
@@ -50,21 +55,21 @@ export class RegisterUserUseCase extends CommandUseCase<
   protected async executeCommand(
     command: RegisterUserCommand,
     trx?: QueryRunner,
-  ): Promise<TokenPair> {
+  ): Promise<RegisterUserResult> {
     if (await this.userRepository.existsByEmail(command.email)) {
       throw new EmailAlreadyExistsError();
     }
 
     const passwordHash = await this.passwordService.hash(command.password);
-    const user = await this.userRepository.create(
-      {
-        email: command.email,
-        name: command.name,
-        passwordHash,
-        roleNames: [DEFAULT_REGISTRATION_ROLE],
-      },
-      trx,
-    );
+    const user = User.create({
+      name: command.name,
+      email: command.email,
+    });
+
+    await this.userRepository.save(user, trx, {
+      passwordHash,
+      roleNames: [DEFAULT_REGISTRATION_ROLE],
+    });
 
     const { accessToken, expiresIn } = await this.tokenService.signAccessToken(
       user.id,
@@ -80,6 +85,6 @@ export class RegisterUserUseCase extends CommandUseCase<
       trx,
     );
 
-    return { accessToken, refreshToken, expiresIn };
+    return { user, accessToken, refreshToken, expiresIn };
   }
 }
