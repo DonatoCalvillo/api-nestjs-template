@@ -25,7 +25,7 @@ module.exports = {
       displayName: 'unit',
       ...baseConfig,
       setupFiles: ['<rootDir>/test/setup-env.ts'],
-      testMatch: ['<rootDir>/test/**/*.test.ts'],
+      testMatch: ['<rootDir>/test/unit/**/*.test.ts'],
       collectCoverageFrom: [
         'src/modules/shared/**/*.ts',
         'src/modules/auth/**/*.ts',

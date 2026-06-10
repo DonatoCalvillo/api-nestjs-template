@@ -6,7 +6,7 @@ The template uses Jest with four projects: unit, integration, e2e, and contract.
 
 | Project | Command | Location | Purpose |
 |---------|---------|----------|---------|
-| Unit | `pnpm test` | `test/*.test.ts` | Use cases, mappers, utilities in isolation |
+| Unit | `pnpm test` | `test/unit/**/*.test.ts` | Use cases, mappers, utilities in isolation |
 | Integration | `pnpm test:integration` | `test/integration/**/*.integration-spec.ts` | DB + repository or HTTP with Testcontainers |
 | E2E | `pnpm test:e2e` | `test/e2e/**/*.e2e-spec.ts` | Full app bootstrap, middleware, guards |
 | Contract | `pnpm test:contract` | `test/contract/` | OpenAPI snapshot |
@@ -14,12 +14,40 @@ The template uses Jest with four projects: unit, integration, e2e, and contract.
 
 Coverage gate (`pnpm test:cov`): **80%** minimum for `shared/`, `auth/`, and `users/` modules.
 
+## Unit test layout
+
+Unit tests mirror `src/modules/`:
+
+```
+test/unit/
+  auth/       # use cases, token/password services, JWT guard
+  users/      # use cases, mappers
+  shared/     # guards, interceptors, filters, outbox, metrics, tracing
+  config/     # helmet, CORS, throttler config
+  healthy/    # health controller with mocked indicators
+```
+
+Shared helpers live in `test/helpers/`.
+
+## What to test at each layer
+
+Follow the test pyramid: many fast unit tests, fewer integration tests, minimal e2e.
+
+| Layer | Test | Do not duplicate |
+|-------|------|------------------|
+| Unit | Business logic, error paths, guards, pure utilities | HTTP wiring already covered in e2e |
+| Integration | Repository custom queries, HTTP flows crossing DB + RBAC | Happy paths already in unit use-case tests |
+| E2E | App bootstrap, cross-cutting behavior (throttling, validation) | Failure modes already in unit tests |
+| Contract | OpenAPI shape regression | Runtime behavior |
+
+**Rule of thumb:** if the same assertion appears in two layers, remove the slower one unless they test different concerns (e.g. unit tests invalid credentials with mocks; integration tests register + login over HTTP).
+
 ## Unit tests
 
 Instantiate use cases directly with mocked ports:
 
 ```typescript
-import { createMockUserRepository } from '../helpers/mock-user-repository';
+import { createMockUserRepository } from '../../helpers/mock-user-repository';
 
 describe('LoginUseCase', () => {
   const userRepository = createMockUserRepository();
@@ -33,13 +61,12 @@ describe('LoginUseCase', () => {
 });
 ```
 
-Helpers: `test/helpers/mock-user-repository.ts`.
-
 Other unit examples:
 
-- `test/user.mapper.test.ts` — Mapper round-trip
-- `test/base.controller.test.ts` — Result handling
-- `test/http-exception.filter.test.ts` — Error envelope
+- `test/unit/users/user.mapper.test.ts` — Mapper round-trip
+- `test/unit/shared/base.controller.test.ts` — Result handling
+- `test/unit/shared/http-exception.filter.test.ts` — Error envelope
+- `test/unit/healthy/healthy.controller.test.ts` — Health failure modes with mocked indicators
 
 ## Integration tests
 
@@ -102,10 +129,10 @@ pnpm test:load
 
 ## Checklist for new features
 
-- [ ] Unit test for each use case (happy path + main failures)
+- [ ] Unit test for each use case (happy path + main failure)
 - [ ] Mapper test if non-trivial conversion
-- [ ] Integration test for repository custom queries
-- [ ] Integration or e2e test for new HTTP endpoints
+- [ ] One integration test per repository with custom queries
+- [ ] One integration or e2e test per new HTTP endpoint (not both for the same happy path)
 - [ ] Update OpenAPI contract if endpoints added
 
 ## Common mistakes
@@ -113,6 +140,7 @@ pnpm test:load
 - Mocking TypeORM in integration tests (use Testcontainers instead)
 - Not running `pnpm build` before integration/e2e (required by scripts)
 - Sharing mutable state between tests
+- Repeating the same happy-path assertion in unit, integration, and e2e
 
 ## See also
 

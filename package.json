@@ -16,6 +16,7 @@
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest --selectProjects unit",
+    "test:related": "jest --selectProjects unit --bail --findRelatedTests --passWithNoTests",
     "test:watch": "jest --selectProjects unit --watch",
     "test:cov": "jest --selectProjects unit --coverage",
     "test:e2e": "pnpm run build && jest --selectProjects e2e --runInBand",
@@ -118,8 +119,5 @@
     "tsconfig-paths": "4.2.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.59.4"
-  },
-  "lint-staged": {
-    "*.ts": "eslint --fix"
   }
 }

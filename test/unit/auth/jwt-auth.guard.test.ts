@@ -1,0 +1,122 @@
+import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ClsService } from 'nestjs-cls';
+import { JwtAuthGuard } from '../../../src/modules/auth/infrastructure/guards/jwt-auth.guard';
+import { IS_PUBLIC_KEY } from '../../../src/modules/auth/infrastructure/constants/auth-metadata.constants';
+import { ActorContextService } from '../../../src/modules/shared/infrastructure/audit/actor-context.service';
+import { CLS_ACTOR } from '../../../src/modules/shared/infrastructure/audit/actor-context.constants';
+
+describe('JwtAuthGuard', () => {
+  let guard: JwtAuthGuard;
+  let reflector: jest.Mocked<Reflector>;
+  let actorContext: jest.Mocked<ActorContextService>;
+
+  const createContext = (
+    path = '/protected',
+    method = 'GET',
+  ): ExecutionContext =>
+    ({
+      switchToHttp: () => ({
+        getRequest: () => ({ path, method }),
+      }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
+    }) as ExecutionContext;
+
+  beforeEach(() => {
+    reflector = {
+      getAllAndOverride: jest.fn(),
+    } as unknown as jest.Mocked<Reflector>;
+
+    actorContext = {
+      setActor: jest.fn(),
+    } as unknown as jest.Mocked<ActorContextService>;
+
+    guard = new JwtAuthGuard(reflector, actorContext);
+  });
+
+  it('allows public routes via metadata', () => {
+    reflector.getAllAndOverride.mockImplementation((key) =>
+      key === IS_PUBLIC_KEY ? true : undefined,
+    );
+
+    expect(guard.canActivate(createContext())).toBe(true);
+  });
+
+  it('allows health probe paths without metadata', () => {
+    reflector.getAllAndOverride.mockReturnValue(undefined);
+
+    expect(guard.canActivate(createContext('/health/live', 'GET'))).toBe(true);
+    expect(guard.canActivate(createContext('/health/ready', 'GET'))).toBe(true);
+    expect(guard.canActivate(createContext('/health', 'GET'))).toBe(true);
+  });
+
+  it('sets actor when user is authenticated', () => {
+    const user = {
+      id: 'user-1',
+      email: 'alice@example.com',
+      name: 'Alice',
+      roles: ['user'],
+      permissions: ['users:read'],
+    };
+
+    const result = guard.handleRequest(null, user);
+
+    expect(result).toEqual(user);
+    expect(actorContext.setActor).toHaveBeenCalledWith({
+      actorId: 'user-1',
+      actorType: 'user',
+      displayName: 'alice@example.com',
+    });
+  });
+
+  it('throws when user is missing', () => {
+    try {
+      guard.handleRequest(null, false);
+      fail('Expected handleRequest to throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.UNAUTHORIZED,
+      );
+      expect((error as HttpException).getResponse()).toEqual(
+        expect.objectContaining({
+          success: false,
+          code: 'E-AUTH-004',
+        }),
+      );
+    }
+  });
+
+  it('persists authenticated actor in CLS store', () => {
+    const store = new Map<string, unknown>();
+    const cls = {
+      get: jest.fn((key: string) => store.get(key)),
+      set: jest.fn((key: string, value: unknown) => {
+        store.set(key, value);
+      }),
+    } as unknown as ClsService;
+
+    const clsActorContext = new ActorContextService(cls);
+    const clsGuard = new JwtAuthGuard({} as Reflector, clsActorContext);
+
+    clsGuard.handleRequest(null, {
+      id: 'user-42',
+      email: 'alice@example.com',
+      name: 'Alice',
+      roles: ['user'],
+      permissions: ['users:read'],
+    });
+
+    expect(cls.set).toHaveBeenCalledWith(CLS_ACTOR, {
+      actorId: 'user-42',
+      actorType: 'user',
+      displayName: 'alice@example.com',
+    });
+    expect(clsActorContext.getActor()).toEqual({
+      actorId: 'user-42',
+      actorType: 'user',
+      displayName: 'alice@example.com',
+    });
+  });
+});
