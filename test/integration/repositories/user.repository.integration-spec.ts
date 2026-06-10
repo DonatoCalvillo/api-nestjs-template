@@ -5,7 +5,11 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../../src/modules/users/application/ports/user.repository.port';
-import { UsersModule } from '../../../src/modules/users/users.module';
+import { UserMapper } from '../../../src/modules/users/infrastructure/mappers/user.mapper';
+import { PermissionEntity } from '../../../src/modules/users/infrastructure/persistence/permission.entity';
+import { RoleEntity } from '../../../src/modules/users/infrastructure/persistence/role.entity';
+import { TypeOrmUserRepository } from '../../../src/modules/users/infrastructure/persistence/typeorm-user.repository';
+import { UserEntity } from '../../../src/modules/users/infrastructure/persistence/user.entity';
 import { truncateTables } from '../../helpers/db-cleanup';
 import { seedUserRole } from '../../helpers/seed-roles';
 import {
@@ -22,7 +26,18 @@ describe('TypeOrmUserRepository (integration)', () => {
     dataSource = await createTestDataSource();
 
     moduleRef = await Test.createTestingModule({
-      imports: [TypeOrmModule.forRoot(getTestDataSourceOptions()), UsersModule],
+      imports: [
+        TypeOrmModule.forRoot(getTestDataSourceOptions()),
+        TypeOrmModule.forFeature([UserEntity, RoleEntity, PermissionEntity]),
+      ],
+      providers: [
+        UserMapper,
+        TypeOrmUserRepository,
+        {
+          provide: USER_REPOSITORY,
+          useExisting: TypeOrmUserRepository,
+        },
+      ],
     }).compile();
 
     repository = moduleRef.get<IUserRepository>(USER_REPOSITORY);
@@ -34,8 +49,8 @@ describe('TypeOrmUserRepository (integration)', () => {
   });
 
   afterAll(async () => {
-    await moduleRef.close();
-    await dataSource.destroy();
+    await moduleRef?.close();
+    await dataSource?.destroy();
   });
 
   it('creates and finds a user by email', async () => {
