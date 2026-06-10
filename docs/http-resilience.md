@@ -127,7 +127,9 @@ Usa un identificador estable por servicio externo (`payment-api`, `inventory-api
 
 Cada `circuitBreakerKey` mantiene su propio estado de circuit breaker en memoria.
 
-### Retry e idempotencia
+### Retry e idempotencia (saliente)
+
+Esta sección cubre idempotencia en llamadas HTTP **salientes** (tu API → servicios externos). Para proteger la API contra reintentos de clientes (`Idempotency-Key` en `POST`/`PUT`/`PATCH`), ver **[idempotency.md](idempotency.md)**.
 
 Por defecto solo se reintenta en métodos idempotentes:
 

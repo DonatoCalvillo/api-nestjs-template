@@ -33,3 +33,6 @@ process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-minimum-32-characters';
 process.env.JWT_ACCESS_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 process.env.BCRYPT_ROUNDS = '10';
+process.env.IDEMPOTENCY_ENABLED = 'true';
+process.env.IDEMPOTENCY_TTL_HOURS = '24';
+process.env.IDEMPOTENCY_CLEANUP_CRON = '0 */6 * * *';

@@ -548,6 +548,10 @@ export class PaymentGateway {
 
 Guía completa con degradación graceful, convenciones de retry e idempotencia, y troubleshooting: **[docs/http-resilience.md](docs/http-resilience.md)**.
 
+### Idempotencia en requests entrantes
+
+Los clientes pueden enviar `Idempotency-Key` en `POST`/`PUT`/`PATCH` para obtener la misma respuesta en reintentos. La tabla `idempotency_keys` cachea respuestas con TTL configurable. Guía completa: **[docs/idempotency.md](docs/idempotency.md)**.
+
 ## 🧑‍💻 Developing
 
 First we need to download the repository

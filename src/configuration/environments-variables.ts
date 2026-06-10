@@ -52,6 +52,9 @@ interface EnvironmentVariables {
   JWT_ACCESS_EXPIRES_IN: string;
   JWT_REFRESH_EXPIRES_IN: string;
   BCRYPT_ROUNDS: number;
+  IDEMPOTENCY_ENABLED: boolean;
+  IDEMPOTENCY_TTL_HOURS: number;
+  IDEMPOTENCY_CLEANUP_CRON: string;
 }
 
 const environmentSchema = joi
@@ -113,6 +116,9 @@ const environmentSchema = joi
     JWT_ACCESS_EXPIRES_IN: joi.string().default('15m'),
     JWT_REFRESH_EXPIRES_IN: joi.string().default('7d'),
     BCRYPT_ROUNDS: joi.number().min(10).max(15).default(12),
+    IDEMPOTENCY_ENABLED: booleanEnv(true),
+    IDEMPOTENCY_TTL_HOURS: joi.number().min(1).default(24),
+    IDEMPOTENCY_CLEANUP_CRON: joi.string().default('0 */6 * * *'),
   })
   .unknown();
 
@@ -167,4 +173,7 @@ export const ENVIRONMENT_VARIABLES = {
   JWT_ACCESS_EXPIRES_IN: environmentVariables.JWT_ACCESS_EXPIRES_IN,
   JWT_REFRESH_EXPIRES_IN: environmentVariables.JWT_REFRESH_EXPIRES_IN,
   BCRYPT_ROUNDS: environmentVariables.BCRYPT_ROUNDS,
+  IDEMPOTENCY_ENABLED: environmentVariables.IDEMPOTENCY_ENABLED,
+  IDEMPOTENCY_TTL_HOURS: environmentVariables.IDEMPOTENCY_TTL_HOURS,
+  IDEMPOTENCY_CLEANUP_CRON: environmentVariables.IDEMPOTENCY_CLEANUP_CRON,
 };

@@ -14,6 +14,7 @@ import {
   DOMAIN_EVENT_DISPATCHER,
   DomainEventStagingService,
 } from './application/events';
+import { IDEMPOTENCY_REPOSITORY } from './application/idempotency';
 import {
   MESSAGE_BROKER_PUBLISHER,
   OUTBOX_REPOSITORY,
@@ -28,6 +29,11 @@ import {
   TypeOrmAuditLogRepository,
 } from './infrastructure/audit';
 import { NestDomainEventDispatcher } from './infrastructure/events';
+import {
+  IdempotencyCleanupService,
+  IdempotencyKeyEntity,
+  TypeOrmIdempotencyRepository,
+} from './infrastructure/idempotency';
 import {
   NoOpMessageBrokerPublisher,
   OutboxMessageEntity,
@@ -50,7 +56,11 @@ import { TraceContextService } from './infrastructure/tracing';
       timeout: ENVIRONMENT_VARIABLES.HTTP_TIMEOUT_MS,
     }),
     ResilienceModule.forRoot({}),
-    TypeOrmModule.forFeature([AuditLogEntity, OutboxMessageEntity]),
+    TypeOrmModule.forFeature([
+      AuditLogEntity,
+      OutboxMessageEntity,
+      IdempotencyKeyEntity,
+    ]),
   ],
   providers: [
     {
@@ -95,6 +105,12 @@ import { TraceContextService } from './infrastructure/tracing';
       useExisting: NoOpMessageBrokerPublisher,
     },
     OutboxRelayService,
+    TypeOrmIdempotencyRepository,
+    {
+      provide: IDEMPOTENCY_REPOSITORY,
+      useExisting: TypeOrmIdempotencyRepository,
+    },
+    IdempotencyCleanupService,
   ],
   exports: [
     TRANSACTION_MANAGER,
@@ -109,6 +125,7 @@ import { TraceContextService } from './infrastructure/tracing';
     OutboxService,
     OUTBOX_REPOSITORY,
     MESSAGE_BROKER_PUBLISHER,
+    IDEMPOTENCY_REPOSITORY,
   ],
 })
 export class SharedModule {}

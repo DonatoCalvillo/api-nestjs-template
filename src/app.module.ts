@@ -21,6 +21,7 @@ import { RolesGuard } from './modules/auth/infrastructure/guards/roles.guard';
 import { loggerOptions } from './configuration/logger';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
 import { HttpExceptionFilter } from './modules/shared/infrastructure/filters/http-exception.filter';
+import { IdempotencyInterceptor } from './modules/shared/infrastructure/idempotency';
 import { TracingInterceptor } from './modules/shared/infrastructure/tracing';
 import { MetricsModule } from './modules/shared/infrastructure/metrics';
 
@@ -66,6 +67,10 @@ import { MetricsModule } from './modules/shared/infrastructure/metrics';
     {
       provide: APP_INTERCEPTOR,
       useClass: TracingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
     },
     {
       provide: APP_FILTER,

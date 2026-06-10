@@ -172,7 +172,7 @@ The relay passes the full `DomainEventEnvelope` (event + actor/request/trace met
 | Topic | Behavior |
 |-------|----------|
 | Atomicity | Outbox rows commit with business data or roll back together |
-| External delivery | At-least-once (consumers must be idempotent) |
+| External delivery | At-least-once (consumers must be idempotent; see [idempotency.md](idempotency.md#relación-con-el-outbox-mensajería)) |
 | In-process handlers | Still fire-and-forget after commit; not durable across restarts |
 | Failed relay | Retries up to `OUTBOX_RELAY_MAX_ATTEMPTS`, then `failed` status |
 
