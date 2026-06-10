@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, In, QueryRunner } from 'typeorm';
 import {
+  PaginatedResult,
+  QueryOptions,
+} from '../../../shared/domain/repositories';
+import { TypeOrmBaseRepository } from '../../../shared/infrastructure/persistence';
+import {
   CreateUserParams,
   IUserRepository,
 } from '../../application/ports/user.repository.port';
@@ -14,16 +19,20 @@ import { RoleEntity } from './role.entity';
 import { UserEntity } from './user.entity';
 
 @Injectable()
-export class TypeOrmUserRepository implements IUserRepository {
-  constructor(
-    private readonly dataSource: DataSource,
-    private readonly mapper: UserMapper,
-  ) {}
+export class TypeOrmUserRepository
+  extends TypeOrmBaseRepository<User, UserEntity>
+  implements IUserRepository
+{
+  constructor(mapper: UserMapper, dataSource: DataSource) {
+    super(mapper, dataSource, TypeOrmUserRepository.name);
+  }
+
+  protected entityClass(): new () => UserEntity {
+    return UserEntity;
+  }
 
   private getUserRepo(trx?: QueryRunner) {
-    return trx
-      ? trx.manager.getRepository(UserEntity)
-      : this.dataSource.getRepository(UserEntity);
+    return this.getRepoForTrx(trx);
   }
 
   private getRoleRepo(trx?: QueryRunner) {
@@ -116,5 +125,29 @@ export class TypeOrmUserRepository implements IUserRepository {
 
     const saved = await this.getUserRepo(trx).save(entity);
     return this.mapper.toModel(saved);
+  }
+
+  async save(user: User, trx?: QueryRunner): Promise<User> {
+    const repo = this.getUserRepo(trx);
+    const existing = await repo.findOne({
+      where: { id: user.id },
+      relations: { roles: true },
+    });
+
+    const entity = this.mapper.toPersistence(user);
+
+    if (existing) {
+      entity.passwordHash = existing.passwordHash;
+      entity.roles = existing.roles;
+    }
+
+    const saved = await repo.save(entity);
+    return this.mapper.toModel(saved);
+  }
+
+  async findMany(
+    options?: QueryOptions<UserEntity>,
+  ): Promise<PaginatedResult<User>> {
+    return super.findMany(options);
   }
 }

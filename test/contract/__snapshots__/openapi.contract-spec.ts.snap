@@ -130,6 +130,79 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
         ],
         "type": "object",
       },
+      "UpdateUserDto": {
+        "properties": {
+          "email": {
+            "example": "user@example.com",
+            "type": "string",
+          },
+          "name": {
+            "example": "Jane Doe",
+            "type": "string",
+          },
+          "version": {
+            "description": "Optimistic-lock version from GET /users/me",
+            "example": 1,
+            "type": "number",
+          },
+        },
+        "required": [
+          "version",
+        ],
+        "type": "object",
+      },
+      "UserResponseDto": {
+        "properties": {
+          "createdAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "format": "date-time",
+            "type": "string",
+          },
+          "email": {
+            "example": "user@example.com",
+            "type": "string",
+          },
+          "id": {
+            "example": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+            "type": "string",
+          },
+          "name": {
+            "example": "Jane Doe",
+            "type": "string",
+          },
+          "permissions": {
+            "example": [],
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "roles": {
+            "example": [
+              "user",
+            ],
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+          "updatedAt": {
+            "example": "2024-01-02T00:00:00.000Z",
+            "format": "date-time",
+            "type": "string",
+          },
+          "version": {
+            "example": 1,
+            "type": "number",
+          },
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+        ],
+        "type": "object",
+      },
     },
     "securitySchemes": {
       "access-token": {
@@ -554,6 +627,351 @@ exports[`OpenAPI contract matches the committed OpenAPI snapshot 1`] = `
         },
         "tags": [
           "auth",
+        ],
+      },
+    },
+    "/api/v1/users": {
+      "get": {
+        "operationId": "UsersController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "example": 1,
+              "minimum": 1,
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "example": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PaginatedResponseDto",
+                        },
+                        {
+                          "properties": {
+                            "items": {
+                              "items": {
+                                "$ref": "#/components/schemas/UserResponseDto",
+                              },
+                              "type": "array",
+                            },
+                          },
+                        },
+                      ],
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Paginated user list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "users",
+        ],
+      },
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "operationId": "UsersController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Current user profile",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "users",
+        ],
+      },
+    },
+    "/api/v1/users/{id}": {
+      "patch": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserResponseDto",
+                    },
+                    "message": {
+                      "example": "Request successful",
+                      "type": "string",
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMetaDto",
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean",
+                    },
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Updated user profile",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto",
+                },
+              },
+            },
+            "description": "",
+          },
+        },
+        "security": [
+          {
+            "access-token": [],
+          },
+        ],
+        "tags": [
+          "users",
         ],
       },
     },

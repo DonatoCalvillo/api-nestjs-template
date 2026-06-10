@@ -5,7 +5,7 @@ import {
   ResponseMetaDto,
 } from '../modules/shared/infrastructure/response';
 import { PaginatedResponseDto } from '../modules/shared/infrastructure/dtos';
-import { API_GLOBAL_PREFIX, API_VERSION, SWAGGER_PATH } from './api.constants';
+import { API_VERSION, SWAGGER_PATH } from './api.constants';
 import { ENVIRONMENT_VARIABLES } from './environments-variables';
 
 const createSwaggerConfig = () =>
@@ -14,7 +14,7 @@ const createSwaggerConfig = () =>
     .setDescription('REST API documentation')
     .setVersion(API_VERSION)
     .addServer(
-      `http://localhost:${ENVIRONMENT_VARIABLES.PORT}/${API_GLOBAL_PREFIX}`,
+      `http://localhost:${ENVIRONMENT_VARIABLES.PORT}`,
       'Local development',
     )
     .addTag('auth', 'Authentication and session management')

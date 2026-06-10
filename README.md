@@ -517,6 +517,20 @@ export class SendWelcomeEmailOnUserCreatedHandler {
 
 `EventEmitterModule`, the dispatcher, and the outbox relay are wired globally in `SharedModule`. Run `pnpm migration:run` to create `outbox_messages`. Enable external relay with `OUTBOX_RELAY_ENABLED=true` and replace `NoOpMessageBrokerPublisher` with your broker adapter. Full guide: **[docs/domain-events.md](docs/domain-events.md)**.
 
+## 👤 Users module (reference CRUD)
+
+The `users` module is the end-to-end reference for wiring auth, RBAC, audit, domain events, optimistic locking, and idempotency in a real flow. Implementation lives under `src/modules/users/`.
+
+| Endpoint | Auth | Patterns demonstrated |
+|----------|------|------------------------|
+| `GET /api/v1/users/me` | Bearer JWT | `@CurrentUser()`, `QueryUseCase`, profile with `version` for updates |
+| `GET /api/v1/users` | `@Roles('admin')` | RBAC guard, `PaginationQueryDto`, paginated envelope |
+| `PATCH /api/v1/users/:id` | Owner or admin | `@AuditLog`, `AggregateRoot` + `UserUpdatedEvent`, optimistic locking (`version` in body), `Idempotency-Key` header |
+
+**Update flow:** read profile from `/users/me` (includes `version`) → send `PATCH` with `{ name?, email?, version }` → on concurrent edit, API returns `409 E-CONCURRENCY` → client reloads and retries.
+
+Integration tests: `test/integration/users/users-crud.integration-spec.ts`.
+
 ## 🛡️ HTTP Resilience
 
 Cuando tu API consume microservicios o APIs de terceros, una caída externa no debe tumbar tu backend. El template incluye una capa de resiliencia basada en [`nestjs-resilience`](https://www.npmjs.com/package/nestjs-resilience) (retry, timeout, circuit breaker) y `@nestjs/axios`.
