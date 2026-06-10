@@ -1,5 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { context, propagation, defaultTextMapSetter } from '@opentelemetry/api';
 import { AxiosError } from 'axios';
 import { PinoLogger } from 'nestjs-pino';
 import {
@@ -19,6 +20,8 @@ import {
   CircuitBreakerOpenError,
   ExternalServiceError,
 } from '../../domain/errors/external-service.error';
+import { TRACEPARENT_HEADER } from '../tracing/trace-context.constants';
+import { TraceContextService } from '../tracing/trace-context.service';
 import { ResiliencePolicyFactory } from './resilience-policy.factory';
 
 const IDEMPOTENT_METHODS: HttpMethod[] = ['GET', 'HEAD', 'OPTIONS'];
@@ -43,6 +46,7 @@ export class ResilientHttpClient implements IHttpClient {
   constructor(
     private readonly httpService: HttpService,
     private readonly policyFactory: ResiliencePolicyFactory,
+    private readonly traceContext: TraceContextService,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(ResilientHttpClient.name);
@@ -55,7 +59,14 @@ export class ResilientHttpClient implements IHttpClient {
     const enableRetry = options.retry ?? IDEMPOTENT_METHODS.includes(method);
 
     this.logger.debug(
-      { method, url: options.url, circuitBreakerKey, enableRetry },
+      {
+        method,
+        url: options.url,
+        circuitBreakerKey,
+        enableRetry,
+        traceId: this.traceContext.getTraceId(),
+        spanId: this.traceContext.getSpanId(),
+      },
       'Executing outbound HTTP request',
     );
 
@@ -108,11 +119,22 @@ export class ResilientHttpClient implements IHttpClient {
     const config = getHttpResilienceConfig();
     const timeout = options.timeout ?? config.timeoutMs;
 
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> | undefined),
+    };
+    propagation.inject(context.active(), headers, defaultTextMapSetter);
+
+    const traceparent = this.traceContext.getTraceparent();
+
+    if (traceparent && !headers[TRACEPARENT_HEADER]) {
+      headers[TRACEPARENT_HEADER] = traceparent;
+    }
+
     const response = await firstValueFrom(
       this.httpService.request<T>({
         url: options.url,
         method,
-        headers: options.headers,
+        headers,
         data: options.body,
         params: options.params,
         timeout,

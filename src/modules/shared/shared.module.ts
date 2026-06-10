@@ -9,6 +9,7 @@ import {
   ResilientHttpClient,
 } from './infrastructure/http';
 import { TypeOrmTransactionManager } from './infrastructure/persistence/typeorm-transaction-manager.service';
+import { TraceContextService } from './infrastructure/tracing';
 
 @Global()
 @Module({
@@ -24,11 +25,12 @@ import { TypeOrmTransactionManager } from './infrastructure/persistence/typeorm-
       useClass: TypeOrmTransactionManager,
     },
     ResiliencePolicyFactory,
+    TraceContextService,
     {
       provide: HTTP_CLIENT,
       useClass: ResilientHttpClient,
     },
   ],
-  exports: [TRANSACTION_MANAGER, HTTP_CLIENT],
+  exports: [TRANSACTION_MANAGER, HTTP_CLIENT, TraceContextService],
 })
 export class SharedModule {}

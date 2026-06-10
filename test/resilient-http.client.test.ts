@@ -14,6 +14,7 @@ import {
   ResiliencePolicyFactory,
   ResilientHttpClient,
 } from '../src/modules/shared/infrastructure/http';
+import { TraceContextService } from '../src/modules/shared/infrastructure/tracing/trace-context.service';
 
 describe('ResilientHttpClient', () => {
   let client: IHttpClient;
@@ -34,6 +35,20 @@ describe('ResilientHttpClient', () => {
         {
           provide: HttpService,
           useValue: httpService,
+        },
+        {
+          provide: TraceContextService,
+          useValue: {
+            getTraceId: jest.fn().mockReturnValue('a'.repeat(32)),
+            getSpanId: jest.fn().mockReturnValue('b'.repeat(16)),
+            getTraceparent: jest
+              .fn()
+              .mockReturnValue(`00-${'a'.repeat(32)}-${'b'.repeat(16)}-01`),
+            getActiveContext: jest.fn(),
+            setContext: jest.fn(),
+            attachToRequest: jest.fn(),
+            setResponseHeaders: jest.fn(),
+          },
         },
         {
           provide: HTTP_CLIENT,
@@ -87,6 +102,23 @@ describe('ResilientHttpClient', () => {
 
     expect(result).toEqual({ id: '123' });
     expect(httpService.request).toHaveBeenCalledTimes(1);
+  });
+
+  it('injects trace propagation headers on outbound requests', async () => {
+    httpService.request.mockReturnValue(of(axiosResponse({ ok: true })));
+
+    await client.get('https://payment-api.example.com/status', {
+      circuitBreakerKey: 'payment-api',
+      headers: { 'x-custom': 'value' },
+    });
+
+    const requestConfig = httpService.request.mock.calls[0][0];
+    expect(requestConfig.headers).toEqual(
+      expect.objectContaining({
+        'x-custom': 'value',
+        traceparent: `00-${'a'.repeat(32)}-${'b'.repeat(16)}-01`,
+      }),
+    );
   });
 
   it('retries transient failures for idempotent GET requests', async () => {

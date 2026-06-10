@@ -35,6 +35,9 @@ interface EnvironmentVariables {
   HTTP_RETRY_BACKOFF_MULTIPLIER: number;
   HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD: number;
   HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS: number;
+  OTEL_TRACES_ENABLED: boolean;
+  OTEL_SERVICE_NAME: string;
+  OTEL_EXPORTER_OTLP_ENDPOINT: string;
 }
 
 const environmentSchema = joi
@@ -65,6 +68,11 @@ const environmentSchema = joi
     HTTP_RETRY_BACKOFF_MULTIPLIER: joi.number().default(2),
     HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD: joi.number().default(5),
     HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS: joi.number().default(30000),
+    OTEL_TRACES_ENABLED: booleanEnv(true),
+    OTEL_SERVICE_NAME: joi.string().default('dodo-schedule-api'),
+    OTEL_EXPORTER_OTLP_ENDPOINT: joi
+      .string()
+      .default('http://localhost:4318/v1/traces'),
   })
   .unknown();
 
@@ -101,4 +109,7 @@ export const ENVIRONMENT_VARIABLES = {
     environmentVariables.HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
   HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS:
     environmentVariables.HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS,
+  OTEL_TRACES_ENABLED: environmentVariables.OTEL_TRACES_ENABLED,
+  OTEL_SERVICE_NAME: environmentVariables.OTEL_SERVICE_NAME,
+  OTEL_EXPORTER_OTLP_ENDPOINT: environmentVariables.OTEL_EXPORTER_OTLP_ENDPOINT,
 };

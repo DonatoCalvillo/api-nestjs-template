@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ClsModule } from 'nestjs-cls';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 
@@ -13,9 +14,15 @@ import { HealthyModule } from './modules/healthy/healthy.module';
 import { SharedModule } from './modules/shared/shared.module';
 import { loggerOptions } from './configuration/logger';
 import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
+import { HttpExceptionFilter } from './modules/shared/infrastructure/filters/http-exception.filter';
+import { TracingInterceptor } from './modules/shared/infrastructure/tracing';
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
     SharedModule,
     TypeOrmModule.forRoot(dataSourceOptions),
     LoggerModule.forRoot(loggerOptions),
@@ -32,6 +39,14 @@ import { ENVIRONMENT_VARIABLES } from './configuration/environments-variables';
     {
       provide: APP_GUARD,
       useClass: ConditionalThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TracingInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
     },
   ],
 })

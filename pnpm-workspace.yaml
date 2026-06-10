@@ -1,3 +1,4 @@
 allowBuilds:
   '@nestjs/core': true
+  protobufjs: set this to true or false
   unrs-resolver: true

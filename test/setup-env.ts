@@ -21,3 +21,6 @@ process.env.HTTP_RETRY_DELAY_MS = '10';
 process.env.HTTP_RETRY_BACKOFF_MULTIPLIER = '1';
 process.env.HTTP_CIRCUIT_BREAKER_FAILURE_THRESHOLD = '2';
 process.env.HTTP_CIRCUIT_BREAKER_RESET_TIMEOUT_MS = '30000';
+process.env.OTEL_TRACES_ENABLED = 'false';
+process.env.OTEL_SERVICE_NAME = 'dodo-schedule-api-test';
+process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4318/v1/traces';
